@@ -9,6 +9,15 @@ A phone-based AI companion service — a modern recreation of late-night TV "cha
 
 Three layers: nostalgia play (retro 90s aesthetic), conceptual art (AI companionship commentary), sincere product (genuinely compelling conversations).
 
+## Repository Architecture
+
+| Repo | Purpose |
+|---|---|
+| [`michaelsolo221/dgflow`](https://github.com/michaelsolo221/dgflow) | Cloud Run webhook app — TypeScript/Express orchestrator, persona loading, Gemini integration, Firestore memory. |
+| [`michaelsolo221/night-line-agent`](https://github.com/michaelsolo221/night-line-agent) | Dialogflow CX agent definition — flows, pages, intents, webhooks (JSON package format). |
+
+Why two repos: Dialogflow CX Git integration requires agent-only files at root and deletes non-agent files on push. The webhook app lives separately. The `cx/` directory in dgflow is a local copy for reference.
+
 ## Creative Constraints
 
 - **Content:** PG-13 / flirtatious, late-night energy. Stays within GCP Responsible AI guardrails. Can evolve to risqué later.
@@ -298,99 +307,91 @@ Personas are data, not code. Adding a new persona = Firestore write + CX flow DT
 Default Start Flow
   ├── Start Page
   │     entry: TTS welcome message with DTMF menu
-  │     routes: DTMF 1→2→3 to persona pages
+  │     route: DTMF 1 → Luna Page
+  │     route: DTMF 2 → Viktor Page
+  │     route: DTMF 3 → Sol Page
   │
   ├── Luna Page
-  │     entry: set $session.params.persona = "luna"
-  │     entry: webhook "greeting" → returns persona.greeting
+  │     entry: webhook (tag: greeting, param: persona=luna)
+  │     route: "goodbye" → Goodbye Page
   │     transition → Converse Page
   │
-  ├── Viktor Page  (same pattern)
-  ├── Sol Page     (same pattern)
+  ├── Viktor Page (same pattern, persona=viktor)
+  ├── Sol Page (same pattern, persona=sol)
   │
   ├── Converse Page
-  │     event handlers:
-  │       sys.no-match-default:
-  │         webhook "converse" → POST /converse
-  │         partial responses: enabled
-  │       sys.no-input-default:
-  │         condition: $session.params.silence_count < 2
-  │         static: "Still with me?"
-  │         set: $session.params.silence_count = $sys.func.ADD(…, 1)
-  │       sys.no-input-default:
-  │         condition: $session.params.silence_count >= 2
-  │         static: "Alright, take care. Call back anytime."
-  │         transition → End Session
-  │       sys.webhook.failed:
-  │         static: "Hmm, lost my train of thought. Say that again?"
-  │     routes:
-  │       intent: "goodbye" → Goodbye Page
+  │     event: sys.no-match-default → webhook (tag: converse)
+  │     event: sys.no-input-default → "Still with me?" (×2, then goodbye)
+  │     event: sys.webhook.failed → "Hmm, lost my train of thought…"
+  │     route: "goodbye" → Goodbye Page
   │
   └── Goodbye Page
-        static: "Goodnight. Call again soon."
+        entry: "Goodnight. Call again soon."
         transition → End Session
 ```
 
-### Configuration checklist
+### Intents
 
-- Phone Gateway: US number, Essentials Edition
-- Conversation Profile: `phone_call` speech model, WaveNet voice per persona
-- Webhook URL: Cloud Run HTTPS endpoint
-- Webhook auth: ID Token (same GCP project)
-- Webhook timeout: 30 seconds
-- Partial responses: enabled on converse webhook
+- `1`, `2`, `3` — DTMF digit intents (dtmfPattern: "1", "2", "3")
+- `goodbye` — training phrases: "goodbye", "bye", "good night", "hang up", etc.
+- `Default Welcome Intent` — auto-created by CX, used for flow-level welcome trigger
 
-## Landing Page
+### Webhook
 
-Static site on Cloud Storage + Cloud CDN. Single page:
-- Hero: phone number (large, prominent)
-- Persona cards: name, tagline, vibe
-- Retro aesthetic: dark background, neon/grainy text, fake scanlines
-- Tech: Astro or plain HTML/CSS, deploy via `gcloud storage cp`
-
-No accounts. No auth. Zero backend. Not worth more design time.
-
-## Cost Model
-
-### GCP costs (per minute of call)
-
-| Resource | Rate | Per minute |
-|---|---|---|
-| Dialogflow CX voice audio | $0.001/sec | $0.06 |
-| Gemini 3.1 Flash-Lite | ~$0.00001875/1K chars in, ~$0.000075/1K chars out | ~$0.01 |
-| Cloud Run (1 min-instance) | ~$0.000018/hour idle + request pricing | negligible |
-| Firestore | Free tier more than covers MVP | $0 |
-| Phone Gateway number rental | ~$1/month | $0 |
-| **Total operator cost** | | **~$0.07/min** |
-
-### Caller pricing (if monetized)
-
-Premium rate phone line or in-call credit card capture. Not in MVP scope.
-
-## Risks & Mitigations
-
-| Risk | Mitigation |
+| Field | Value |
 |---|---|
-| Webhook + LLM latency exceeds CX timeout (30s) | Partial responses hide gap; Gemini Flash-Lite targets ~600ms; 25s budget leaves margin |
-| Cold starts cause first-turn timeout | `--min-instances=1` on Cloud Run + `--cpu-boost` |
-| Content guardrail violations | Per-persona banned topic lists; Gemini safety filters as second layer; deflection responses |
-| Gemini 3.1 Flash-Lite deprecated (like 2.0 Flash) | Model is a config knob; architecture is model-agnostic |
-| Caller ID unavailable (Trial Edition) | Essentials Edition required; validated in search results |
-| STT errors on poor audio | `phone_call` speech model optimized for telephony; graceful fallback prompts |
+| Name | `night-line-orchestrator` |
+| URL | `https://night-line-921064029774.us-central1.run.app/converse` |
+| Timeout | 30s |
+| Auth | ID Token (Dialogflow service agent → Cloud Run invoker) |
 
-## Non-Goals (explicitly out of scope)
+## Deployment
 
-- Stripe/payment integration
-- User accounts or authentication
-- Custom voice model training
-- Multi-language support (English only for MVP)
-- Admin dashboard
-- Analytics/metrics beyond Cloud Logging
-- Text/SMS interface
+### Cloud Run
 
-## Implementation Notes
+```bash
+gcloud run deploy night-line \
+  --source . \
+  --region us-central1 \
+  --min-instances=1 \
+  --cpu-boost \
+  --set-env-vars GOOGLE_CLOUD_PROJECT=superb-tendril-409615,VERTEX_LOCATION=us-central1
+```
 
-- Dialogflow CX console migrated to Conversational Agents console (Oct 2025). Use the new unified console.
-- Generative Playbooks NOT used (no SLA, limited control). All generative logic is in the orchestrator.
-- `gemini-3.1-flash-lite-preview` deprecated 2026-05-25. Use GA `gemini-3.1-flash-lite`.
-- Phone Gateway supports US numbers only. Factor this into testing.
+### Dialogflow CX Agent
+
+Agent definition stored as JSON package format in [`night-line-agent`](https://github.com/michaelsolo221/night-line-agent) repo. Restore via REST API or console Git integration.
+
+## Phone Gateway
+
+- US numbers only (Essentials Edition required)
+- DTMF detection for menu navigation
+- Caller ID passed as `payload.telephony.caller_id`
+- Conversation profile: `night-line-voice`
+
+## Testing Strategy
+
+### Unit tests (Jest)
+- Persona loading, content guard, system prompt building
+- Gemini client (mocked) — response parsing, error handling
+- Memory CRUD (mocked Firestore) — create/read caller, append turns, update facts
+- Orchestrator integration — webhook simulation for greeting, converse, error paths
+
+### Smoke tests (curl)
+- `GET /healthz` → 200 `{"status":"ok"}`
+- `POST /converse` with tag `greeting` → Luna's greeting text
+- `POST /converse` with tag `converse` and text → non-empty Gemini response
+
+### Manual test (dial the number)
+- Welcome → press 1 → Luna greeting → speak → response → goodbye → hang up
+- Verify Firestore `callers/<phone>` has turn history
+
+## Future Slices
+
+- **Slice 2:** Memory — load recent turns into Gemini prompt for context
+- **Slice 3:** Fact extraction — caller name, preferences, key details
+- **Slice 4:** Content guard — persona-specific deflection for banned topics
+- **Slice 5:** Viktor + Sol personas — full character prompts and greetings
+- **Slice 6:** Landing page — retro aesthetic, persona showcase, phone number
+- **Slice 7:** Voice customization — distinct WaveNet voices per persona
+- **Slice 8:** Call analytics — duration, persona popularity, conversation quality

@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+tests
+firestore
+landing
+cx
+docs
+.git
