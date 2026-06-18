@@ -17,7 +17,7 @@ export function createApp(db: Firestore, config: Config): express.Express {
       const body = req.body as WebhookRequest;
       const personaId = String(body.sessionInfo?.parameters?.persona ?? "");
       const callerPhone = body.payload?.telephony?.caller_id ?? "unknown";
-      const userText = body.text ?? "";
+      const userText = body.text ?? body.transcript ?? body.intentInfo?.transcript ?? "";
       const tag = body.fulfillmentInfo?.tag;
 
       if (!personaId) {

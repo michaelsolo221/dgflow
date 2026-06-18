@@ -50,6 +50,10 @@ export interface WebhookRequest {
     };
   };
   text?: string;
+  transcript?: string;
+  intentInfo?: {
+    transcript?: string;
+  };
 }
 
 export interface WebhookResponse {
