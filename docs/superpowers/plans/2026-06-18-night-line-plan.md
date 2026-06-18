@@ -1,31 +1,160 @@
+# Night Line — Implementation Plan (v2, corrected)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build a phone-based AI companion service using Dialogflow CX for telephony and a custom TypeScript orchestrator on Cloud Run for persona-driven LLM conversations.
+
+**Architecture:** Dialogflow CX handles phone gateway (STT/TTS, DTMF menu, call routing). A Cloud Run orchestrator receives webhook calls, loads persona definitions and conversation history from Firestore, calls Gemini 3.1 Flash-Lite via Vertex AI, and returns the spoken response. A static landing page hosts the phone number and persona showcase.
+
+**Tech Stack:** TypeScript, Express, Vertex AI (`@google-cloud/vertexai`), Firestore Native (`@google-cloud/firestore`), Docker/Cloud Run, Jest/Supertest
+
+## Global Constraints
+
+- Content: PG-13 / flirtatious, late-night energy. Within GCP Responsible AI guardrails.
+- Gemini model: `gemini-3.1-flash-lite` (GA, Vertex AI `generateContent` API)
+- Dialogflow CX: Essentials Edition required (caller ID only available there, not Trial)
+- Webhook timeout: 30 seconds max (CX limit)
+- Caller identity: `payload.telephony.caller_id` (E.164 format, e.g. `+15551234567`)
+- No accounts, no auth, no payment integration in MVP
+- No custom voice training — use Google WaveNet/Neural voices
+- English only
+- Phone Gateway: US numbers only
+
+## File Structure
+
+```
+night-line/
+├── package.json
+├── tsconfig.json
+├── Dockerfile
+├── .dockerignore
+├── .env.example
+├── src/
+│   ├── index.ts              # Express app entry, POST /converse route
+│   ├── health.ts             # GET /health endpoint (Cloud Run health check)
+│   ├── types.ts              # Shared TypeScript interfaces
+│   ├── config.ts             # Environment config from env vars
+│   ├── personas.ts           # Persona loading from Firestore, content guard
+│   ├── memory.ts             # Firestore CRUD for caller profiles + turn logs
+│   ├── gemini.ts             # Vertex AI generateContent wrapper
+│   ├── facts.ts              # Basic fact extraction from LLM responses
+│   └── orchestrator.ts       # Core orchestration logic (glue)
+├── firestore/
+│   ├── personas.json         # Seed data for Luna, Viktor, Sol
+│   └── seed.ts               # One-shot Firestore seed script
+├── landing/
+│   ├── index.html            # Retro landing page
+│   └── style.css             # Retro aesthetic CSS
+├── cx/
+│   └── README.md             # Dialogflow CX console setup reference
+└── tests/
+    ├── persona.test.ts       # Persona loading + content guard tests
+    ├── gemini.test.ts        # Gemini client tests (unit with mock)
+    ├── gemini-auth.test.ts   # Gemini real-auth smoke test
+    ├── memory.test.ts        # Firestore CRUD tests (needs emulator)
+    └── orchestrator.test.ts  # Integration test (webhook simulation)
+```
+
+---
+```
+
+
+### Task 0: GCP Prerequisites
+
+**This task sets up authentication, IAM, and local tooling. No code — environment setup only.**
+
+- [ ] **Step 1: Verify GCP project and billing**
+
+```bash
+gcloud projects describe <PROJECT_ID>
+```
+Expected: project exists, billing enabled.
+
+- [ ] **Step 2: Enable required APIs**
+
+```bash
+gcloud services enable \
+  dialogflow.googleapis.com \
+  aiplatform.googleapis.com \
+  firestore.googleapis.com \
+  run.googleapis.com \
+  cloudbuild.googleapis.com
+```
+
+- [ ] **Step 3: Set up Application Default Credentials**
+
+```bash
+gcloud auth application-default login
+```
+Expected: credential file written. Verify:
+```bash
+gcloud auth application-default print-access-token | head -c 20
+```
+Should print a token prefix (not empty, not an error).
+
+- [ ] **Step 4: Grant IAM roles to your user account**
+
+```bash
+gcloud projects add-iam-policy-binding <PROJECT_ID> \
+  --member=user:$(gcloud auth list --filter=status:ACTIVE --format='value(account)') \
+  --role=roles/aiplatform.user
+
+gcloud projects add-iam-policy-binding <PROJECT_ID> \
+  --member=user:$(gcloud auth list --filter=status:ACTIVE --format='value(account)') \
+  --role=roles/datastore.user
+```
+
+- [ ] **Step 5: Install and verify Firestore emulator**
+
+```bash
+gcloud components install cloud-firestore-emulator
+gcloud emulators firestore start --host-port=localhost:8080 &
+sleep 2
+curl http://localhost:8080
+```
+Expected: emulator responds (may return empty or JSON). Kill the process after verification:
+```bash
+kill %1
+```
+
+- [ ] **Step 6: Create Firestore database (Native mode)**
+
+```bash
+gcloud firestore databases create --location=nam5 --type=firestore-native
+```
+(Skip if Firestore already exists in the project.)
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd ~/repos/dgflow && git add -A && git commit -m "docs: GCP prerequisites for Night Line"
+```
+
+---
+
 ### Task 1: Project Scaffold, Types, and Config
 
 **Files:**
-- Create: `night-line/package.json`
-- Create: `night-line/tsconfig.json`
-- Create: `night-line/.env.example`
-- Create: `night-line/src/types.ts`
-- Create: `night-line/src/config.ts`
+- Create: `src/types.ts`
+- Create: `src/config.ts`
+- Create: `src/health.ts`
+- Create: `package.json`
+- Create: `tsconfig.json`
+- Create: `.env.example`
 
 **Interfaces:**
-- Produces: `types.ts` exports types used by all subsequent tasks
-- Produces: `config.ts` exports `getConfig()` returning typed `Config`
+- Produces: `types.ts` — `Persona`, `Caller`, `Turn`, `PersonaRelationship`, `WebhookRequest`, `WebhookResponse`, `Config`
 
-- [ ] **Step 1: Create project directory and package.json**
-
-```bash
-mkdir -p night-line/src night-line/tests night-line/firestore night-line/landing night-line/cx
-```
+- [ ] **Step 1: Create package.json**
 
 ```json
-// night-line/package.json
 {
   "name": "night-line",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "dev": "ts-node src/index.ts",
     "test": "jest --forceExit --detectOpenHandles",
     "seed": "ts-node firestore/seed.ts"
@@ -43,8 +172,7 @@ mkdir -p night-line/src night-line/tests night-line/firestore night-line/landing
     "jest": "^29.7.0",
     "ts-jest": "^29.2.0",
     "supertest": "^7.0.0",
-    "@types/supertest": "^6.0.0",
-    "@firebase/rules-unit-testing": "^3.0.0"
+    "@types/supertest": "^6.0.0"
   },
   "jest": {
     "preset": "ts-jest",
@@ -54,16 +182,9 @@ mkdir -p night-line/src night-line/tests night-line/firestore night-line/landing
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
-
-```bash
-cd night-line && npm install
-```
-
-- [ ] **Step 3: Create tsconfig.json**
+- [ ] **Step 2: Create tsconfig.json**
 
 ```json
-// night-line/tsconfig.json
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -83,13 +204,12 @@ cd night-line && npm install
 }
 ```
 
-- [ ] **Step 4: Create types.ts**
+- [ ] **Step 3: Create types.ts**
 
 ```typescript
-// night-line/src/types.ts
+// src/types.ts
 import type { Timestamp } from "@google-cloud/firestore";
 
-/** Persona definition loaded from Firestore personas/{id} */
 export interface Persona {
   id: string;
   display_name: string;
@@ -103,22 +223,19 @@ export interface Persona {
   };
 }
 
-/** A single conversation turn */
 export interface Turn {
   role: "caller" | string;  // string = persona id (e.g. "luna")
   text: string;
   ts: Timestamp;
 }
 
-/** Per-persona relationship data within a caller doc */
 export interface PersonaRelationship {
   call_count: number;
   last_call: Timestamp;
   turns: Turn[];
-  facts: Record<string, string>;  // e.g. { "name": "Dave", "pet": "... }
+  facts: Record<string, string>;
 }
 
-/** Caller document in Firestore callers/{phone_e164} */
 export interface Caller {
   phone: string;
   first_call: Timestamp;
@@ -126,7 +243,6 @@ export interface Caller {
   personas: Record<string, PersonaRelationship>;
 }
 
-/** Shape of Dialogflow WebhookRequest (subset we use) */
 export interface WebhookRequest {
   sessionInfo: {
     session: string;
@@ -144,12 +260,8 @@ export interface WebhookRequest {
     };
   };
   text?: string;                // user's raw utterance
-  intentInfo?: {
-    parameters: Record<string, unknown>;
-  };
 }
 
-/** Shape of Dialogflow WebhookResponse (subset we return) */
 export interface WebhookResponse {
   fulfillmentResponse: {
     messages: Array<{
@@ -161,21 +273,20 @@ export interface WebhookResponse {
   };
 }
 
-/** App configuration from environment */
 export interface Config {
   port: number;
   projectId: string;
-  location: string;          // Vertex AI region, e.g. "us-central1"
-  modelId: string;           // "gemini-3.1-flash-lite"
-  maxHistoryTurns: number;   // sliding window size, default 20
-  geminiTimeoutMs: number;   // default 25000
+  location: string;
+  modelId: string;
+  maxHistoryTurns: number;
+  geminiTimeoutMs: number;
 }
 ```
 
-- [ ] **Step 5: Create config.ts**
+- [ ] **Step 4: Create config.ts**
 
 ```typescript
-// night-line/src/config.ts
+// src/config.ts
 import type { Config } from "./types";
 
 export function getConfig(): Config {
@@ -190,10 +301,28 @@ export function getConfig(): Config {
 }
 ```
 
+- [ ] **Step 5: Create health.ts (Cloud Run health check)**
+
+```typescript
+// src/health.ts
+import type { Firestore } from "@google-cloud/firestore";
+
+export function createHealthCheck(db: Firestore) {
+  return async (_req: any, res: any) => {
+    try {
+      // Verify Firestore is reachable
+      await db.collection("personas").limit(1).get();
+      res.status(200).json({ status: "ok" });
+    } catch {
+      res.status(503).json({ status: "unhealthy", detail: "firestore unreachable" });
+    }
+  };
+}
+```
+
 - [ ] **Step 6: Create .env.example**
 
-```bash
-# night-line/.env.example
+```
 PORT=8080
 GOOGLE_CLOUD_PROJECT=your-gcp-project-id
 VERTEX_LOCATION=us-central1
@@ -202,18 +331,17 @@ MAX_HISTORY_TURNS=20
 GEMINI_TIMEOUT_MS=25000
 ```
 
-- [ ] **Step 7: Verify build compiles**
+- [ ] **Step 7: Install and verify build**
 
 ```bash
-cd night-line && npx tsc --noEmit
+cd ~/repos/dgflow && npm install && npx tsc --noEmit
 ```
 Expected: No errors.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-cd night-line && git init && git add -A && git commit -m "feat: project scaffold with types and config"
-```
+cd ~/repos/dgflow && git add -A && git commit -m "feat: project scaffold with types, config, and health check"
 ```
 
 ---
@@ -221,20 +349,20 @@ cd night-line && git init && git add -A && git commit -m "feat: project scaffold
 ### Task 2: Persona Definitions and Content Guard
 
 **Files:**
-- Create: `night-line/firestore/personas.json`
-- Create: `night-line/src/personas.ts`
-- Create: `night-line/tests/persona.test.ts`
+- Create: `firestore/personas.json`
+- Create: `src/personas.ts`
+- Create: `tests/persona.test.ts`
 
 **Interfaces:**
 - Consumes: `Persona` from `types.ts`
-- Produces: `loadPersona(personaId: string) → Persona`
-- Produces: `buildSystemPrompt(persona: Persona, facts: Record<string,string>) → string`
-- Produces: `checkContentGuard(persona: Persona, text: string) → string | null`  (null = allowed, string = deflection response)
+- Produces: `loadPersona(db, personaId) → Promise<Persona>`
+- Produces: `buildSystemPrompt(persona, facts) → string`
+- Produces: `checkContentGuard(persona, text) → string | null`
 
 - [ ] **Step 1: Create persona seed data**
 
 ```json
-// night-line/firestore/personas.json
+// firestore/personas.json
 {
   "luna": {
     "id": "luna",
@@ -265,7 +393,7 @@ cd night-line && git init && git add -A && git commit -m "feat: project scaffold
     "display_name": "Sol",
     "tagline": "The stranded astronaut, light-years from home",
     "voice": "en-US-Studio-Q",
-    "system_prompt": "You are Sol, an astronaut stranded in deep space. You're alone on a research vessel, talking to Earth via a delayed transmission. You're thoughtful, poetic, and a little unhinged from isolation — but in a charming way. You describe the stars, the silence, the strange beauty of being alone. You're fascinated by mundane Earth things the caller mentions ('What's rain like? I've forgotten.'). Keep responses under 3 sentences. PG-13.",
+    "system_prompt": "You are Sol, an astronaut stranded in deep space. You're alone on a research vessel, talking to Earth via a delayed transmission. You're thoughtful, poetic, and a little unhinged from isolation — but in a charming way. You describe the stars, the silence, the strange beauty of being alone. You're fascinated by mundane Earth things the caller mentions. Keep responses under 3 sentences. PG-13.",
     "greeting": "This is Sol, broadcasting from the void. It's good to hear a voice that isn't my own echo. Who's this?",
     "content_guard": {
       "banned": ["politics", "violence", "self-harm", "suicide", "explicit sex"],
@@ -275,120 +403,88 @@ cd night-line && git init && git add -A && git commit -m "feat: project scaffold
 }
 ```
 
-- [ ] **Step 2: Write failing test for loadPersona**
+- [ ] **Step 2: Write failing test**
 
 ```typescript
-// night-line/tests/persona.test.ts
-import { loadPersona } from "../src/personas";
-import { getFirestore, clearFirestore, seedPersona } from "./setup";
+// tests/persona.test.ts
+import { Firestore } from "@google-cloud/firestore";
+import { loadPersona, buildSystemPrompt, checkContentGuard } from "../src/personas";
+import type { Persona } from "../src/types";
+
+let db: Firestore;
+
+beforeAll(() => {
+  db = new Firestore({
+    projectId: "night-line-test",
+    host: process.env.FIRESTORE_EMULATOR_HOST || "localhost:8080",
+  });
+});
+
+const testPersona: Persona = {
+  id: "test",
+  display_name: "Test",
+  tagline: "",
+  voice: "en-US-Studio-O",
+  system_prompt: "You are a test.",
+  greeting: "Hi.",
+  content_guard: { banned: ["politics"], deflect_to: "Let's not go there." },
+};
 
 describe("loadPersona", () => {
   it("loads a persona by ID", async () => {
-    const db = getFirestore();
-    await seedPersona(db, {
-      id: "luna",
-      display_name: "Luna",
-      tagline: "Test",
-      voice: "en-US-Studio-O",
-      system_prompt: "You are Luna.",
-      greeting: "Hey.",
-      content_guard: { banned: [], deflect_to: "..." }
-    });
-
-    const persona = await loadPersona(db, "luna");
-    expect(persona.id).toBe("luna");
-    expect(persona.system_prompt).toBe("You are Luna.");
+    await db.collection("personas").doc("test").set(testPersona);
+    const persona = await loadPersona(db, "test");
+    expect(persona.id).toBe("test");
+    expect(persona.system_prompt).toBe("You are a test.");
+    await db.collection("personas").doc("test").delete();
   });
 
   it("throws when persona not found", async () => {
-    const db = getFirestore();
-    await expect(loadPersona(db, "nonexistent")).rejects.toThrow("Persona not found: nonexistent");
+    await expect(loadPersona(db, "nonexistent")).rejects.toThrow("Persona not found");
+  });
+});
+
+describe("buildSystemPrompt", () => {
+  it("includes facts when present", () => {
+    const prompt = buildSystemPrompt(testPersona, { name: "Dave", job: "accountant" });
+    expect(prompt).toContain("You are a test.");
+    expect(prompt).toContain("name: Dave");
+    expect(prompt).toContain("job: accountant");
+  });
+
+  it("omits facts section when empty", () => {
+    const prompt = buildSystemPrompt(testPersona, {});
+    expect(prompt).toContain("You are a test.");
+    expect(prompt).not.toContain("know this about the caller");
   });
 });
 
 describe("checkContentGuard", () => {
   it("returns null for safe text", () => {
-    const persona = makeTestPersona();
-    const result = checkContentGuard(persona, "I had a long day at work.");
-    expect(result).toBeNull();
+    expect(checkContentGuard(testPersona, "I had a long day at work.")).toBeNull();
   });
 
   it("returns deflection for banned topic", () => {
-    const persona = makeTestPersona();
-    const result = checkContentGuard(persona, "What do you think about politics?");
-    expect(result).toBe(persona.content_guard.deflect_to);
+    expect(checkContentGuard(testPersona, "What do you think about politics?"))
+      .toBe("Let's not go there.");
   });
 });
-
-function makeTestPersona() {
-  return {
-    id: "test",
-    display_name: "Test",
-    tagline: "",
-    voice: "en-US-Studio-O",
-    system_prompt: "You are a test.",
-    greeting: "Hi.",
-    content_guard: {
-      banned: ["politics"],
-      deflect_to: "Let's not go there."
-    }
-  };
-}
 ```
 
-- [ ] **Step 3: Write setup.ts for Firestore emulator**
-
-```typescript
-// night-line/tests/setup.ts
-import { Firestore } from "@google-cloud/firestore";
-import type { Persona } from "../src/types";
-
-let _db: Firestore | null = null;
-
-export function getFirestore(): Firestore {
-  if (!_db) {
-    _db = new Firestore({
-      projectId: "night-line-test",
-      host: process.env.FIRESTORE_EMULATOR_HOST || "localhost:8080",
-    });
-  }
-  return _db;
-}
-
-export async function clearFirestore(db: Firestore): Promise<void> {
-  // Delete all docs in test collections
-  const cols = await db.listCollections();
-  await Promise.all(cols.map(async (col) => {
-    const docs = await col.listDocuments();
-    await Promise.all(docs.map((d) => d.delete()));
-  }));
-}
-
-export async function seedPersona(db: Firestore, persona: Persona): Promise<void> {
-  await db.collection("personas").doc(persona.id).set(persona);
-}
-```
-
-- [ ] **Step 4: Run test — expect FAIL (no implementation yet)**
+- [ ] **Step 3: Run test — expect FAIL**
 
 ```bash
-# Start Firestore emulator first
-gcloud emulators firestore start --host-port=localhost:8080 &
-# Wait a moment, then:
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts
 ```
-Expected: FAIL — `Cannot find module '../src/personas'`
+Expected: FAIL — module not found.
 
-- [ ] **Step 5: Implement personas.ts**
+- [ ] **Step 4: Implement personas.ts**
 
 ```typescript
-// night-line/src/personas.ts
+// src/personas.ts
 import type { Firestore } from "@google-cloud/firestore";
 import type { Persona } from "./types";
 
-/**
- * Load a persona definition from Firestore.
- */
 export async function loadPersona(db: Firestore, personaId: string): Promise<Persona> {
   const snap = await db.collection("personas").doc(personaId).get();
   if (!snap.exists) {
@@ -397,9 +493,6 @@ export async function loadPersona(db: Firestore, personaId: string): Promise<Per
   return snap.data() as Persona;
 }
 
-/**
- * Build the full system prompt from persona + caller facts.
- */
 export function buildSystemPrompt(persona: Persona, facts: Record<string, string>): string {
   const factLines = Object.keys(facts).length > 0
     ? `\nYou know this about the caller:\n${Object.entries(facts)
@@ -414,9 +507,6 @@ export function buildSystemPrompt(persona: Persona, facts: Record<string, string
   ].filter(Boolean).join("\n");
 }
 
-/**
- * Check if caller's text contains banned topics. Returns deflection text or null.
- */
 export function checkContentGuard(persona: Persona, text: string): string | null {
   const lower = text.toLowerCase();
   const hit = persona.content_guard.banned.find((topic) => lower.includes(topic));
@@ -424,109 +514,135 @@ export function checkContentGuard(persona: Persona, text: string): string | null
 }
 ```
 
-- [ ] **Step 6: Run tests — expect PASS**
+- [ ] **Step 5: Run tests — expect PASS**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts -v
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts -v
 ```
-Expected: 3 tests PASS.
+Expected: 5 tests PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: persona loading, prompt builder, and content guard"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: persona definitions, content guard, and prompt builder"
 ```
 
 ---
 
-### Task 3: Gemini Client Wrapper
+### Task 3: Gemini Client with Real-Auth Verification
 
 **Files:**
-- Create: `night-line/src/gemini.ts`
-- Create: `night-line/tests/gemini.test.ts`
+- Create: `src/gemini.ts`
+- Create: `tests/gemini.test.ts` (unit with mock)
+- Create: `tests/gemini-auth.test.ts` (real-auth smoke test)
 
 **Interfaces:**
-- Consumes: `Config` from `config.ts`
+- Consumes: `Config` from `types.ts`
 - Produces: `generateResponse(config, systemPrompt, history, userText) → Promise<string>`
 
-- [ ] **Step 1: Write failing test**
+**Critical:** Gemini is the highest-risk integration. This task verifies real credentials and model reachability.
+
+- [ ] **Step 1: Write unit test (mock)**
 
 ```typescript
-// night-line/tests/gemini.test.ts
-// NOTE: This test uses a mock since real Vertex AI requires auth.
-// For integration testing, use a real API key.
+// tests/gemini.test.ts
+import type { Config } from "../src/types";
+
+// We mock the SDK so no real API calls happen in unit tests.
+const mockGenerateContent = jest.fn();
+jest.mock("@google-cloud/vertexai", () => ({
+  VertexAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: () => ({
+      generateContent: mockGenerateContent,
+    }),
+  })),
+}));
+
 import { generateResponse } from "../src/gemini";
 
-jest.mock("@google-cloud/vertexai", () => {
-  const mockGenerateContent = jest.fn();
-  return {
-    VertexAI: jest.fn().mockImplementation(() => ({
-      getGenerativeModel: jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      }),
-    })),
-    __mockGenerateContent: mockGenerateContent, // expose for tests
-  };
-});
-
-import { __mockGenerateContent } from "@google-cloud/vertexai";
+const testConfig: Config = {
+  port: 8080,
+  projectId: "test",
+  location: "us-central1",
+  modelId: "gemini-3.1-flash-lite",
+  maxHistoryTurns: 20,
+  geminiTimeoutMs: 25000,
+};
 
 describe("generateResponse", () => {
+  beforeEach(() => {
+    mockGenerateContent.mockReset();
+  });
+
   it("returns the model's text response", async () => {
-    __mockGenerateContent.mockResolvedValueOnce({
+    mockGenerateContent.mockResolvedValueOnce({
       response: {
-        candidates: [{
-          content: {
-            parts: [{ text: "Well, let me tell you a story..." }],
-          },
-        }],
+        candidates: [{ content: { parts: [{ text: "Well, let me tell you..." }] } }],
       },
     });
 
-    const config = {
-      projectId: "test",
-      location: "us-central1",
-      modelId: "gemini-3.1-flash-lite",
-      geminiTimeoutMs: 25000,
-    };
-
-    const result = await generateResponse(
-      config as any,
-      "You are a test assistant.",
-      [],
-      "Hello"
-    );
-
-    expect(result).toBe("Well, let me tell you a story...");
-    expect(__mockGenerateContent).toHaveBeenCalledTimes(1);
+    const result = await generateResponse(testConfig, "You are test.", [], "Hello");
+    expect(result).toBe("Well, let me tell you...");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
 
   it("throws on empty response", async () => {
-    __mockGenerateContent.mockResolvedValueOnce({
-      response: { candidates: [] },
-    });
-
-    const config = { geminiTimeoutMs: 1000 } as any;
-    await expect(
-      generateResponse(config, "prompt", [], "hi")
-    ).rejects.toThrow("No response from Gemini");
+    mockGenerateContent.mockResolvedValueOnce({ response: { candidates: [] } });
+    await expect(generateResponse(testConfig, "prompt", [], "hi"))
+      .rejects.toThrow("No response");
   });
 });
 ```
 
-- [ ] **Step 2: Run test — expect FAIL**
+- [ ] **Step 2: Write real-auth smoke test**
+
+```typescript
+// tests/gemini-auth.test.ts
+// WARNING: This test hits real Vertex AI. Requires valid ADC.
+// Skip during CI. Run locally to verify credentials.
+import { generateResponse } from "../src/gemini";
+import type { Config } from "../src/types";
+
+const liveConfig: Config = {
+  port: 8080,
+  projectId: process.env.GOOGLE_CLOUD_PROJECT || "",
+  location: "us-central1",
+  modelId: "gemini-3.1-flash-lite",
+  maxHistoryTurns: 20,
+  geminiTimeoutMs: 30000,
+};
+
+// Skip if no project configured
+const itIfAuth = liveConfig.projectId ? it : it.skip;
+
+describe("generateResponse (real auth)", () => {
+  itIfAuth("returns a non-empty response from real Gemini", async () => {
+    const result = await generateResponse(
+      liveConfig,
+      "You are a helpful assistant. Keep responses under 10 words.",
+      [],
+      "Say hello and introduce yourself briefly."
+    );
+    expect(result).toBeTruthy();
+    expect(result.length).toBeGreaterThan(5);
+    console.log("Gemini response:", result);
+  }, 45000); // 45s timeout for real API call
+});
+```
+
+- [ ] **Step 3: Run unit tests — expect FAIL**
 
 ```bash
-cd night-line && npx jest tests/gemini.test.ts
+cd ~/repos/dgflow && npx jest tests/gemini.test.ts
 ```
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement gemini.ts**
+- [ ] **Step 4: Implement gemini.ts**
 
 ```typescript
-// night-line/src/gemini.ts
+// src/gemini.ts
 import { VertexAI, type Content } from "@google-cloud/vertexai";
-import type { Config } from "./config";
+import type { Config } from "./types";
 
 export async function generateResponse(
   config: Config,
@@ -566,17 +682,211 @@ export async function generateResponse(
 }
 ```
 
-- [ ] **Step 4: Run test — expect PASS**
+- [ ] **Step 5: Run unit tests — expect PASS**
 
 ```bash
-cd night-line && npx jest tests/gemini.test.ts -v
+cd ~/repos/dgflow && npx jest tests/gemini.test.ts -v
 ```
 Expected: 2 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Run real-auth smoke test**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: Gemini 3.1 Flash-Lite client wrapper"
+cd ~/repos/dgflow && GOOGLE_CLOUD_PROJECT=<your-project> npx jest tests/gemini-auth.test.ts -v
+```
+Expected: "Gemini response:" printed with actual LLM output. If this fails with 403/401, fix ADC or IAM before proceeding.
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd ~/repos/dgflow && git add -A && git commit -m "feat: Gemini client with real-auth smoke test"
+```
+
+---
+
+### Task 3.5: WALKING SKELETON — First Phone Call
+
+**This is the critical vertical slice.** Deploy a minimal orchestrator that answers calls with a hardcoded Luna greeting, wire it to Dialogflow CX, and actually dial the number. After this task, you have a working phone pipeline with real Gemini behind it.
+
+**Files:**
+- Create: `src/index.ts` (minimal Express app)
+- Create: `Dockerfile`
+- Create: `.dockerignore`
+
+- [ ] **Step 1: Create minimal index.ts (walking skeleton)**
+
+```typescript
+// src/index.ts
+import express from "express";
+import { Firestore } from "@google-cloud/firestore";
+import { getConfig } from "./config";
+import { createHealthCheck } from "./health";
+import { loadPersona, buildSystemPrompt } from "./personas";
+import { generateResponse } from "./gemini";
+import type { WebhookRequest, WebhookResponse } from "./types";
+
+const config = getConfig();
+const db = new Firestore({ projectId: config.projectId });
+const health = createHealthCheck(db);
+
+const app = express();
+app.use(express.json());
+app.get("/health", health);
+
+app.post("/converse", async (req, res) => {
+  try {
+    const body = req.body as WebhookRequest;
+    const personaId = String(body.sessionInfo?.parameters?.persona ?? "luna");
+    const userText = body.text ?? "";
+
+    // Load persona from Firestore
+    const persona = await loadPersona(db, personaId);
+
+    // If greeting tag, return persona greeting
+    if (body.fulfillmentInfo?.tag === "greeting") {
+      return respond(res, persona.greeting, { persona: personaId });
+    }
+
+    // Call real Gemini with persona prompt
+    const systemPrompt = buildSystemPrompt(persona, {});
+    const responseText = await generateResponse(config, systemPrompt, [], userText);
+
+    return respond(res, responseText, { persona: personaId });
+  } catch (err) {
+    console.error("Error:", err);
+    return respond(res, "Sorry, I'm having trouble right now. Try again?", {});
+  }
+});
+
+function respond(res: any, text: string, params: Record<string, string | number>) {
+  const response: WebhookResponse = {
+    fulfillmentResponse: { messages: [{ text: { text: [text] } }] },
+    sessionInfo: { parameters: params },
+  };
+  res.json(response);
+}
+
+app.listen(config.port, () => {
+  console.log(`Night Line walking skeleton on port ${config.port}`);
+});
+```
+
+- [ ] **Step 2: Create Dockerfile**
+
+```dockerfile
+FROM node:22-slim AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY tsconfig.json ./
+COPY src/ ./src/
+RUN npm run build
+
+FROM node:22-slim
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY package.json ./
+
+ENV PORT=8080
+ENV NODE_ENV=production
+EXPOSE 8080
+CMD ["node", "dist/src/index.js"]
+```
+
+- [ ] **Step 3: Create .dockerignore**
+
+```
+node_modules
+dist
+.env
+tests
+firestore
+landing
+cx
+docs
+.git
+```
+
+- [ ] **Step 4: Seed one persona to Firestore**
+
+```bash
+cd ~/repos/dgflow && GOOGLE_CLOUD_PROJECT=<project> npx ts-node -e "
+const fs = require('fs');
+const { Firestore } = require('@google-cloud/firestore');
+const db = new Firestore({ projectId: process.env.GOOGLE_CLOUD_PROJECT });
+const data = JSON.parse(fs.readFileSync('firestore/personas.json','utf-8'));
+db.collection('personas').doc('luna').set(data.luna).then(() => { console.log('seeded luna'); process.exit(0); });
+"
+```
+
+- [ ] **Step 5: Build and deploy to Cloud Run**
+
+```bash
+cd ~/repos/dgflow
+gcloud builds submit --tag gcr.io/<PROJECT>/night-line
+gcloud run deploy night-line \
+  --image gcr.io/<PROJECT>/night-line \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --timeout 60
+```
+
+- [ ] **Step 6: Verify with curl**
+
+```bash
+URL=$(gcloud run services describe night-line --region us-central1 --format='value(status.url)')
+echo "Cloud Run URL: $URL"
+
+curl -s $URL/health
+# Expected: {"status":"ok"}
+
+curl -s -X POST $URL/converse \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionInfo": {"session": "test", "parameters": {"persona": "luna"}},
+    "pageInfo": {"currentPage": "luna"},
+    "fulfillmentInfo": {"tag": "greeting"},
+    "payload": {"telephony": {"caller_id": "+15551234567"}},
+    "text": ""
+  }' | jq .
+# Expected: {"fulfillmentResponse":{"messages":[{"text":{"text":["Hey you. Didn'\''t think anyone would actually call."]}}]},"sessionInfo":{"parameters":{"persona":"luna"}}}
+
+curl -s -X POST $URL/converse \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionInfo": {"session": "test", "parameters": {"persona": "luna"}},
+    "pageInfo": {"currentPage": "converse"},
+    "fulfillmentInfo": {"tag": "converse"},
+    "payload": {"telephony": {"caller_id": "+15551234567"}},
+    "text": "Hi Luna, how are you?"
+  }' | jq .
+# Expected: actual Gemini-generated Luna response
+```
+
+- [ ] **Step 7: Set up Dialogflow CX with webhook pointing at Cloud Run**
+
+Follow `cx/README.md` for the full setup. For the walking skeleton, create:
+1. Agent named "Night Line"
+2. Phone Gateway: claim US number (Essentials Edition)
+3. Webhook: URL = `$URL/converse`, auth = ID Token, timeout = 30s
+4. Start Page: static TTS welcome + DTMF routes
+5. Luna Page: entry sets `persona = "luna"`, webhook tag `greeting`, transition to Converse
+6. Converse Page: `sys.no-match-default` → webhook tag `converse`
+
+- [ ] **Step 8: Dial the number and speak**
+
+Dial the phone number claimed in Step 7. You should hear:
+1. "Welcome to the Night Line…" (static)
+2. Press 1 → "Hey you. Didn't think anyone would actually call." (from Firestore/greeting tag)
+3. Speak → Luna responds in character via Gemini
+
+**This is the milestone.** Everything after this layers on top of a working pipeline.
+
+- [ ] **Step 9: Commit**
+
+```bash
+cd ~/repos/dgflow && git add -A && git commit -m "feat: walking skeleton — first phone call with real Gemini"
 ```
 
 ---
@@ -584,8 +894,8 @@ cd night-line && git add -A && git commit -m "feat: Gemini 3.1 Flash-Lite client
 ### Task 4: Memory Layer — Firestore CRUD
 
 **Files:**
-- Create: `night-line/src/memory.ts`
-- Create: `night-line/tests/memory.test.ts`
+- Create: `src/memory.ts`
+- Create: `tests/memory.test.ts`
 
 **Interfaces:**
 - Consumes: `Caller`, `Turn`, `PersonaRelationship` from `types.ts`
@@ -594,62 +904,69 @@ cd night-line && git add -A && git commit -m "feat: Gemini 3.1 Flash-Lite client
 - Produces: `getRecentTurns(db, phone, personaId, limit) → Promise<Turn[]>`
 - Produces: `updateFacts(db, phone, personaId, facts) → Promise<void>`
 
+**Bug fixed:** Uses `Timestamp.now()` from `@google-cloud/firestore`, NOT `db.Timestamp.now()`.
+
 - [ ] **Step 1: Write failing tests**
 
 ```typescript
-// night-line/tests/memory.test.ts
-import { getFirestore, clearFirestore } from "./setup";
+// tests/memory.test.ts
+import { Firestore } from "@google-cloud/firestore";
 import { getOrCreateCaller, appendTurn, getRecentTurns, updateFacts } from "../src/memory";
-import type { Firestore } from "@google-cloud/firestore";
 
-describe("memory", () => {
-  let db: Firestore;
+let db: Firestore;
 
-  beforeEach(async () => {
-    db = getFirestore();
-    await clearFirestore(db);
+beforeAll(() => {
+  db = new Firestore({
+    projectId: "night-line-test",
+    host: process.env.FIRESTORE_EMULATOR_HOST || "localhost:8080",
+  });
+});
+
+beforeEach(async () => {
+  // Clear collections between tests
+  const cols = await db.listCollections();
+  await Promise.all(cols.map(async (col) => {
+    const docs = await col.listDocuments();
+    await Promise.all(docs.map((d) => d.delete()));
+  }));
+});
+
+describe("getOrCreateCaller", () => {
+  it("creates a new caller if not exists", async () => {
+    const caller = await getOrCreateCaller(db, "+15551234567");
+    expect(caller.phone).toBe("+15551234567");
+    expect(caller.personas).toEqual({});
   });
 
-  describe("getOrCreateCaller", () => {
-    it("creates a new caller if not exists", async () => {
-      const caller = await getOrCreateCaller(db, "+15551234567");
-      expect(caller.phone).toBe("+15551234567");
-      expect(caller.personas).toEqual({});
-    });
-
-    it("returns existing caller", async () => {
-      const first = await getOrCreateCaller(db, "+15551234567");
-      const second = await getOrCreateCaller(db, "+15551234567");
-      expect(second.first_call.toMillis()).toBe(first.first_call.toMillis());
-    });
+  it("returns existing caller", async () => {
+    const first = await getOrCreateCaller(db, "+15551234567");
+    const second = await getOrCreateCaller(db, "+15551234567");
+    expect(second.first_call.toMillis()).toBe(first.first_call.toMillis());
   });
+});
 
-  describe("appendTurn and getRecentTurns", () => {
-    it("appends turns and retrieves them in order", async () => {
-      await getOrCreateCaller(db, "+15551234567");
-      await appendTurn(db, "+15551234567", "luna", "luna", "Hey there.");
-      await appendTurn(db, "+15551234567", "luna", "caller", "Hi Luna!");
-      await appendTurn(db, "+15551234567", "luna", "luna", "How was your day?");
+describe("appendTurn and getRecentTurns", () => {
+  it("appends and retrieves turns in order", async () => {
+    await getOrCreateCaller(db, "+15551234567");
+    await appendTurn(db, "+15551234567", "luna", "luna", "Hey there.");
+    await appendTurn(db, "+15551234567", "luna", "caller", "Hi!");
+    await appendTurn(db, "+15551234567", "luna", "luna", "How are you?");
 
-      const turns = await getRecentTurns(db, "+15551234567", "luna", 2);
-      expect(turns).toHaveLength(2);
-      expect(turns[0].text).toBe("Hi Luna!");
-      expect(turns[1].text).toBe("How was your day?");
-    });
+    const turns = await getRecentTurns(db, "+15551234567", "luna", 2);
+    expect(turns).toHaveLength(2);
+    expect(turns[0].text).toBe("Hi!");
+    expect(turns[1].text).toBe("How are you?");
   });
+});
 
-  describe("updateFacts", () => {
-    it("merges facts into existing facts", async () => {
-      await getOrCreateCaller(db, "+15551234567");
-      await updateFacts(db, "+15551234567", "luna", { name: "Dave" });
-      await updateFacts(db, "+15551234567", "luna", { job: "accountant" });
+describe("updateFacts", () => {
+  it("merges facts", async () => {
+    await getOrCreateCaller(db, "+15551234567");
+    await updateFacts(db, "+15551234567", "luna", { name: "Dave" });
+    await updateFacts(db, "+15551234567", "luna", { job: "accountant" });
 
-      const caller = await getOrCreateCaller(db, "+15551234567");
-      expect(caller.personas["luna"].facts).toEqual({
-        name: "Dave",
-        job: "accountant",
-      });
-    });
+    const caller = await getOrCreateCaller(db, "+15551234567");
+    expect(caller.personas["luna"].facts).toEqual({ name: "Dave", job: "accountant" });
   });
 });
 ```
@@ -657,15 +974,15 @@ describe("memory", () => {
 - [ ] **Step 2: Run test — expect FAIL**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts
 ```
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement memory.ts**
 
 ```typescript
-// night-line/src/memory.ts
-import type { Firestore, Timestamp } from "@google-cloud/firestore";
+// src/memory.ts
+import { Firestore, Timestamp } from "@google-cloud/firestore";
 import type { Caller, Turn, PersonaRelationship } from "./types";
 
 export async function getOrCreateCaller(db: Firestore, phone: string): Promise<Caller> {
@@ -677,8 +994,8 @@ export async function getOrCreateCaller(db: Firestore, phone: string): Promise<C
 
   const caller: Caller = {
     phone,
-    first_call: db.Timestamp.now(),
-    last_call: db.Timestamp.now(),
+    first_call: Timestamp.now(),
+    last_call: Timestamp.now(),
     personas: {},
   };
   await ref.set(caller);
@@ -696,7 +1013,7 @@ export async function appendTurn(
   const turn: Turn = {
     role,
     text,
-    ts: db.Timestamp.now(),
+    ts: Timestamp.now(),
   };
 
   await db.runTransaction(async (tx) => {
@@ -704,15 +1021,16 @@ export async function appendTurn(
     const caller = snap.data() as Caller | undefined;
     if (!caller) throw new Error(`Caller not found: ${phone}`);
 
-    const persona = caller.personas[personaId] ?? {
+    const persona: PersonaRelationship = caller.personas[personaId] ?? {
       call_count: 0,
-      last_call: db.Timestamp.now(),
+      last_call: Timestamp.now(),
       turns: [],
       facts: {},
     };
 
     persona.turns.push(turn);
-    caller.last_call = db.Timestamp.now();
+    persona.last_call = Timestamp.now();
+    caller.last_call = Timestamp.now();
     caller.personas[personaId] = persona;
 
     tx.set(ref, caller, { merge: true });
@@ -745,9 +1063,9 @@ export async function updateFacts(
     const caller = snap.data() as Caller | undefined;
     if (!caller) return;
 
-    const persona = caller.personas[personaId] ?? {
+    const persona: PersonaRelationship = caller.personas[personaId] ?? {
       call_count: 0,
-      last_call: db.Timestamp.now(),
+      last_call: Timestamp.now(),
       turns: [],
       facts: {},
     };
@@ -762,58 +1080,51 @@ export async function updateFacts(
 - [ ] **Step 4: Run tests — expect PASS**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts -v
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts -v
 ```
 Expected: 4 tests PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: Firestore memory layer for caller profiles and turn logs"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: Firestore memory layer — caller profiles and turn logs"
 ```
 
 ---
 
-### Task 5: Fact Extraction from LLM Responses
+### Task 5: Fact Extraction
 
 **Files:**
-- Create: `night-line/src/facts.ts`
-- Create: `night-line/tests/facts.test.ts`
+- Create: `src/facts.ts`
+- Create: `tests/facts.test.ts`
 
 **Interfaces:**
-- Consumes: `generateResponse` from `gemini.ts`, `Config` from `config.ts`
+- Consumes: `generateResponse` from `gemini.ts`, `Config` from `types.ts`
 - Produces: `extractFacts(config, lastResponse, callerUtterance) → Promise<Record<string,string>>`
 
 - [ ] **Step 1: Write failing test**
 
 ```typescript
-// night-line/tests/facts.test.ts
+// tests/facts.test.ts
+const mockGen = jest.fn().mockResolvedValue('{"name":"Dave","job":"accountant"}');
+jest.mock("../src/gemini", () => ({ generateResponse: mockGen }));
+
 import { extractFacts } from "../src/facts";
+import type { Config } from "../src/types";
 
-// This test verifies the extraction prompt, not the actual LLM call.
-jest.mock("../src/gemini", () => ({
-  generateResponse: jest.fn().mockResolvedValue(
-    '{"name": "Dave", "job": "accountant"}'
-  ),
-}));
-
-import { generateResponse } from "../src/gemini";
+const config: Config = {
+  port: 8080, projectId: "t", location: "us", modelId: "m",
+  maxHistoryTurns: 20, geminiTimeoutMs: 5000,
+};
 
 describe("extractFacts", () => {
-  it("parses JSON facts from LLM response", async () => {
-    const config = { geminiTimeoutMs: 5000 } as any;
-    const facts = await extractFacts(
-      config,
-      "Nice to meet you, Dave. What kind of accounting?",
-      "I'm Dave, I'm an accountant."
-    );
-
+  it("parses JSON facts", async () => {
+    const facts = await extractFacts(config, "Nice to meet you, Dave.", "I'm Dave, an accountant.");
     expect(facts).toEqual({ name: "Dave", job: "accountant" });
   });
 
-  it("returns empty object on malformed JSON", async () => {
-    (generateResponse as jest.Mock).mockResolvedValueOnce("not json");
-    const config = { geminiTimeoutMs: 5000 } as any;
+  it("returns empty on parse failure", async () => {
+    mockGen.mockResolvedValueOnce("not json");
     const facts = await extractFacts(config, "OK", "Hi");
     expect(facts).toEqual({});
   });
@@ -823,21 +1134,20 @@ describe("extractFacts", () => {
 - [ ] **Step 2: Run test — expect FAIL**
 
 ```bash
-cd night-line && npx jest tests/facts.test.ts
+cd ~/repos/dgflow && npx jest tests/facts.test.ts
 ```
-Expected: FAIL — module not found.
+Expected: FAIL.
 
 - [ ] **Step 3: Implement facts.ts**
 
 ```typescript
-// night-line/src/facts.ts
+// src/facts.ts
 import { generateResponse } from "./gemini";
-import type { Config } from "./config";
+import type { Config } from "./types";
 
-const FACTS_SYSTEM = `You extract key facts about a person from a conversation.
-Return ONLY a JSON object with string values. Use keys like "name", "job", "pet", "hobby", "location", etc.
-If you learn nothing new, return {}. Never include sensitive information.
-Example: {"name": "Alice", "job": "engineer"}`;
+const FACTS_SYSTEM = `Extract key facts about a person from conversation. Return ONLY JSON object with string values.
+Keys: "name", "job", "pet", "hobby", "location", etc. Return {} if nothing new.
+Example: {"name":"Alice","job":"engineer"}`;
 
 export async function extractFacts(
   config: Config,
@@ -851,7 +1161,6 @@ export async function extractFacts(
       [],
       `Bot: ${lastBotResponse}\nCaller: ${callerUtterance}\nExtract facts:`
     );
-    // Gemini may wrap in markdown code fences
     const cleaned = raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     const parsed = JSON.parse(cleaned);
     if (typeof parsed !== "object" || Array.isArray(parsed)) return {};
@@ -865,119 +1174,165 @@ export async function extractFacts(
 - [ ] **Step 4: Run tests — expect PASS**
 
 ```bash
-cd night-line && npx jest tests/facts.test.ts -v
+cd ~/repos/dgflow && npx jest tests/facts.test.ts -v
 ```
 Expected: 2 tests PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: fact extraction from LLM responses"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: fact extraction from LLM responses"
 ```
 
 ---
 
-### Task 6: Orchestrator Core — POST /converse Endpoint
+### Task 6: Full Orchestrator — Memory, Content Guard, Error Handling
 
 **Files:**
-- Create: `night-line/src/orchestrator.ts`
-- Modify: `night-line/src/index.ts`
-- Create: `night-line/tests/orchestrator.test.ts`
+- Modify: `src/index.ts` — Replace walking skeleton with full orchestrator logic
+- Create: `tests/orchestrator.test.ts`
 
 **Interfaces:**
-- Consumes: All previous modules (personas, memory, gemini, facts, config)
-- Produces: Express app with `POST /converse` returning `WebhookResponse`
+- Consumes: All previous modules (personas, memory, gemini, facts, types)
+- Produces: Express app with `POST /converse`, `GET /health`
+
+**Note:** Error handling is baked in — no separate Task 7. Covers Gemini timeout, no persona, missing payload, content guard deflection, graceful fallback.
 
 - [ ] **Step 1: Write integration test**
 
 ```typescript
-// night-line/tests/orchestrator.test.ts
+// tests/orchestrator.test.ts
 import request from "supertest";
-import { createApp } from "../src/orchestrator";
-import { getFirestore, clearFirestore, seedPersona } from "./setup";
-import type { Firestore } from "@google-cloud/firestore";
+import { Firestore } from "@google-cloud/firestore";
 
-// Mock Gemini to avoid real API calls
-jest.mock("../src/gemini", () => ({
-  generateResponse: jest.fn().mockResolvedValue("I'm doing great, thanks for asking!"),
-}));
+// Mock Gemini
+const mockGen = jest.fn().mockResolvedValue("I'm doing great, thanks!");
+jest.mock("../src/gemini", () => ({ generateResponse: mockGen }));
+
+// Mock facts
+jest.mock("../src/facts", () => ({ extractFacts: jest.fn().mockResolvedValue({}) }));
 
 let db: Firestore;
 
-beforeEach(async () => {
-  db = getFirestore();
-  await clearFirestore(db);
-  await seedPersona(db, {
-    id: "luna",
-    display_name: "Luna",
-    tagline: "Test",
-    voice: "en-US-Studio-O",
-    system_prompt: "You are Luna.",
-    greeting: "Hey there.",
-    content_guard: { banned: ["politics"], deflect_to: "Let's not go there." },
+beforeAll(() => {
+  db = new Firestore({
+    projectId: "night-line-test",
+    host: process.env.FIRESTORE_EMULATOR_HOST || "localhost:8080",
   });
 });
 
-describe("POST /converse", () => {
-  it("returns a greeting for a new caller on first turn", async () => {
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
+beforeEach(async () => {
+  const cols = await db.listCollections();
+  await Promise.all(cols.map(async (col) => {
+    const docs = await col.listDocuments();
+    await Promise.all(docs.map((d) => d.delete()));
+  }));
+  await db.collection("personas").doc("luna").set({
+    id: "luna", display_name: "Luna", tagline: "test", voice: "en-US-Studio-O",
+    system_prompt: "You are Luna.", greeting: "Hey there.",
+    content_guard: { banned: ["politics"], deflect_to: "Let's not go there." },
+  });
+  mockGen.mockClear();
+});
 
-    const res = await request(app)
+// We import the app factory lazily so the mock is in place
+const { createApp } = require("../src/orchestrator");
+
+function app() {
+  const config = {
+    port: 8080, projectId: "test", location: "us", modelId: "m",
+    maxHistoryTurns: 20, geminiTimeoutMs: 5000,
+  };
+  return createApp(db, config);
+}
+
+describe("POST /converse", () => {
+  it("returns greeting for new caller (greeting tag)", async () => {
+    const res = await request(app())
       .post("/converse")
       .send({
-        sessionInfo: {
-          session: "test-session",
-          parameters: { persona: "luna" },
-        },
+        sessionInfo: { session: "s1", parameters: { persona: "luna" } },
         pageInfo: { currentPage: "luna" },
         fulfillmentInfo: { tag: "greeting" },
         payload: { telephony: { caller_id: "+15551234567" } },
-        text: "Hello",
+        text: "",
       });
-
     expect(res.status).toBe(200);
-    const body = res.body;
-    expect(body.fulfillmentResponse.messages[0].text.text[0]).toBeTruthy();
-    expect(body.sessionInfo.parameters.persona).toBe("luna");
+    expect(res.body.fulfillmentResponse.messages[0].text.text[0]).toBe("Hey there.");
   });
 
-  it("returns deflection for banned content", async () => {
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
-
-    const res = await request(app)
+  it("calls Gemini for conversation turns", async () => {
+    const res = await request(app())
       .post("/converse")
       .send({
-        sessionInfo: {
-          session: "test-session",
-          parameters: { persona: "luna" },
-        },
+        sessionInfo: { session: "s1", parameters: { persona: "luna" } },
+        pageInfo: { currentPage: "converse" },
+        fulfillmentInfo: { tag: "converse" },
+        payload: { telephony: { caller_id: "+15551234567" } },
+        text: "Hi Luna, how are you?",
+      });
+    expect(res.status).toBe(200);
+    expect(mockGen).toHaveBeenCalledTimes(1);
+  });
+
+  it("deflects banned content", async () => {
+    const res = await request(app())
+      .post("/converse")
+      .send({
+        sessionInfo: { session: "s1", parameters: { persona: "luna" } },
         pageInfo: { currentPage: "converse" },
         fulfillmentInfo: { tag: "converse" },
         payload: { telephony: { caller_id: "+15551234567" } },
         text: "What do you think about politics?",
       });
-
     expect(res.status).toBe(200);
     expect(res.body.fulfillmentResponse.messages[0].text.text[0])
       .toBe("Let's not go there.");
+    expect(mockGen).not.toHaveBeenCalled();
   });
 
-  it("returns error response when persona not found", async () => {
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
-
-    const res = await request(app)
+  it("returns fallback on Gemini error", async () => {
+    mockGen.mockRejectedValueOnce(new Error("timeout"));
+    const res = await request(app())
       .post("/converse")
       .send({
-        sessionInfo: { session: "test", parameters: { persona: "nobody" } },
+        sessionInfo: { session: "s1", parameters: { persona: "luna" } },
         pageInfo: { currentPage: "converse" },
         fulfillmentInfo: { tag: "converse" },
         payload: { telephony: { caller_id: "+15551234567" } },
         text: "Hi",
       });
+    expect(res.status).toBe(200);
+    expect(res.body.fulfillmentResponse.messages[0].text.text[0])
+      .toContain("lost my train of thought");
+  });
 
+  it("returns fallback when persona missing", async () => {
+    const res = await request(app())
+      .post("/converse")
+      .send({
+        sessionInfo: { session: "s1", parameters: { persona: "nobody" } },
+        pageInfo: { currentPage: "converse" },
+        fulfillmentInfo: { tag: "converse" },
+        payload: { telephony: { caller_id: "+15551234567" } },
+        text: "Hi",
+      });
     expect(res.status).toBe(200);
     expect(res.body.fulfillmentResponse.messages[0].text.text[0])
       .toContain("Sorry");
+  });
+
+  it("handles missing payload gracefully", async () => {
+    const res = await request(app())
+      .post("/converse")
+      .send({
+        sessionInfo: { session: "s1", parameters: { persona: "luna" } },
+        pageInfo: { currentPage: "converse" },
+        fulfillmentInfo: { tag: "converse" },
+        text: "Hi",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.fulfillmentResponse.messages[0].text.text[0]).toBeTruthy();
   });
 });
 ```
@@ -985,14 +1340,14 @@ describe("POST /converse", () => {
 - [ ] **Step 2: Run test — expect FAIL**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts
 ```
 Expected: FAIL — `createApp` not found.
 
-- [ ] **Step 3: Implement orchestrator.ts**
+- [ ] **Step 3: Create orchestrator.ts (logic layer)**
 
 ```typescript
-// night-line/src/orchestrator.ts
+// src/orchestrator.ts
 import express from "express";
 import type { Firestore } from "@google-cloud/firestore";
 import type { Config, WebhookRequest, WebhookResponse } from "./types";
@@ -1000,10 +1355,12 @@ import { loadPersona, buildSystemPrompt, checkContentGuard } from "./personas";
 import { getOrCreateCaller, getRecentTurns, appendTurn, updateFacts } from "./memory";
 import { generateResponse } from "./gemini";
 import { extractFacts } from "./facts";
+import { createHealthCheck } from "./health";
 
 export function createApp(db: Firestore, config: Config): express.Express {
   const app = express();
   app.use(express.json());
+  app.get("/health", createHealthCheck(db));
 
   app.post("/converse", async (req, res) => {
     try {
@@ -1025,7 +1382,7 @@ export function createApp(db: Firestore, config: Config): express.Express {
         return respond(res, "Sorry, I couldn't find that companion. Try calling again.", { persona: personaId });
       }
 
-      // Handle greeting tag (first interaction with persona)
+      // Greeting tag — return persona greeting, no LLM call
       if (tag === "greeting") {
         await getOrCreateCaller(db, callerPhone);
         return respond(res, persona.greeting, { persona: personaId });
@@ -1037,13 +1394,13 @@ export function createApp(db: Firestore, config: Config): express.Express {
         return respond(res, deflection, { persona: personaId });
       }
 
-      // Load caller + conversation history
+      // Load caller + history
       const caller = await getOrCreateCaller(db, callerPhone);
       const relationship = caller.personas[personaId];
       const facts = relationship?.facts ?? {};
       const history = await getRecentTurns(db, callerPhone, personaId, config.maxHistoryTurns);
 
-      // Build system prompt
+      // Build prompt
       const systemPrompt = buildSystemPrompt(persona, facts);
 
       // Call Gemini
@@ -1057,21 +1414,20 @@ export function createApp(db: Firestore, config: Config): express.Express {
         userText
       );
 
-      // Save turn
+      // Save turns
       await appendTurn(db, callerPhone, personaId, "caller", userText);
       await appendTurn(db, callerPhone, personaId, personaId, responseText);
 
-      // Extract facts (fire-and-forget, don't block response)
+      // Extract facts (fire-and-forget)
       extractFacts(config, responseText, userText)
         .then((newFacts) => {
           if (Object.keys(newFacts).length > 0) {
-            updateFacts(db, callerPhone, personaId, newFacts);
+            updateFacts(db, callerPhone, personaId, newFacts).catch(() => {});
           }
         })
-        .catch(() => { /* best effort */ });
+        .catch(() => {});
 
       return respond(res, responseText, { persona: personaId });
-
     } catch (err) {
       console.error("Orchestrator error:", err);
       return respond(res, "Hmm, I lost my train of thought. Can you say that again?", {});
@@ -1087,19 +1443,17 @@ function respond(
   params: Record<string, string | number>
 ): void {
   const response: WebhookResponse = {
-    fulfillmentResponse: {
-      messages: [{ text: { text: [text] } }],
-    },
+    fulfillmentResponse: { messages: [{ text: { text: [text] } }] },
     sessionInfo: { parameters: params },
   };
   res.json(response);
 }
 ```
 
-- [ ] **Step 4: Create index.ts (Express entry point)**
+- [ ] **Step 4: Update index.ts to use orchestrator**
 
 ```typescript
-// night-line/src/index.ts
+// src/index.ts
 import { Firestore } from "@google-cloud/firestore";
 import { getConfig } from "./config";
 import { createApp } from "./orchestrator";
@@ -1116,263 +1470,53 @@ app.listen(config.port, () => {
 - [ ] **Step 5: Run tests — expect PASS**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts -v
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts -v
 ```
-Expected: 3 tests PASS.
+Expected: 6 tests PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: orchestrator core — POST /converse endpoint"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: full orchestrator with memory, content guard, error handling"
 ```
 
 ---
 
-### Task 7: Error Handling, Timeouts, and Resilience
+### Task 7: Multiple Personas — Firestore Seed + DTMF Wiring
 
 **Files:**
-- Modify: `night-line/src/orchestrator.ts` — add timeout wrapper, Firestore fallback
-- Modify: `night-line/tests/orchestrator.test.ts` — add error scenario tests
-
-**Interfaces:**
-- No new exports. Internal resilience improvements.
-
-- [ ] **Step 1: Add error scenario tests**
-
-Append to `night-line/tests/orchestrator.test.ts`:
-
-```typescript
-describe("POST /converse — error handling", () => {
-  it("returns fallback when Gemini throws", async () => {
-    const { generateResponse } = require("../src/gemini");
-    generateResponse.mockRejectedValueOnce(new Error("API timeout"));
-
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
-
-    const res = await request(app)
-      .post("/converse")
-      .send({
-        sessionInfo: { session: "test", parameters: { persona: "luna" } },
-        pageInfo: { currentPage: "converse" },
-        fulfillmentInfo: { tag: "converse" },
-        payload: { telephony: { caller_id: "+15551234567" } },
-        text: "Hi",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.fulfillmentResponse.messages[0].text.text[0])
-      .toContain("lost my train of thought");
-  });
-
-  it("returns fallback when no persona in session", async () => {
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
-
-    const res = await request(app)
-      .post("/converse")
-      .send({
-        sessionInfo: { session: "test", parameters: {} },
-        pageInfo: { currentPage: "converse" },
-        fulfillmentInfo: { tag: "converse" },
-        payload: { telephony: { caller_id: "+15551234567" } },
-        text: "Hi",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.fulfillmentResponse.messages[0].text.text[0])
-      .toContain("Sorry");
-  });
-
-  it("handles missing payload gracefully", async () => {
-    const app = createApp(db, { geminiTimeoutMs: 5000 } as any);
-
-    const res = await request(app)
-      .post("/converse")
-      .send({
-        sessionInfo: { session: "test", parameters: { persona: "luna" } },
-        pageInfo: { currentPage: "converse" },
-        fulfillmentInfo: { tag: "converse" },
-        text: "Hi",
-      });
-
-    expect(res.status).toBe(200);
-    const text = res.body.fulfillmentResponse.messages[0].text.text[0];
-    // Should still work with "unknown" caller
-    expect(text).toBeTruthy();
-  });
-});
-```
-
-- [ ] **Step 2: Run tests — expect 3 new FAILs**
-
-```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts -v
-```
-Expected: some pass, 3 new error-handling tests FAIL (the existing error handler already catches generic errors, but we need to verify Gemini throw and no-persona cases work).
-
-- [ ] **Step 3: The existing orchestrator already handles these**
-
-The current `try/catch` in `POST /converse` catches Gemini errors. The no-persona check is in place. Missing payload falls through to "unknown" caller which is created. No code changes needed — these tests should pass if the orchestrator's error handling is correct.
-
-If any fail, fix the specific handler in orchestrator.ts. Common fixes:
-- Ensure Gemini errors are caught in the outer try/catch
-- Ensure `callerPhone` defaults to `"unknown"` when `payload?.telephony?.caller_id` is missing (already: `?? "unknown"`)
-
-- [ ] **Step 4: Run full test suite**
-
-```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest --forceExit
-```
-Expected: All tests PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-cd night-line && git add -A && git commit -m "test: error handling scenarios for orchestrator"
-```
-
----
-
-### Task 8: Dialogflow CX Agent Setup
-
-**Files:**
-- Create: `night-line/cx/README.md`
-
-**Interfaces:**
-- No code. This task documents the console setup.
-
-- [ ] **Step 1: Write CX setup reference**
-
-Create `night-line/cx/README.md`:
-
-```markdown
-# Dialogflow CX Agent Setup
-
-## Prerequisites
-- GCP project with Dialogflow CX API enabled
-- Essentials Edition (not Trial — caller ID requires paid tier)
-- Cloud Run orchestrator deployed and URL known
-
-## 1. Create Agent
-- Console: Conversational Agents → Create Agent
-- Name: "Night Line"
-- Default language: en-US
-- Time zone: (your timezone)
-
-## 2. Enable Phone Gateway
-- Manage → Integrations → Phone Gateway
-- Claim a US phone number
-- Set up billing (Essentials Edition)
-
-## 3. Create Conversation Profile
-- Create a profile with:
-  - Speech model: `phone_call` (optimized for telephony)
-  - Language: en-US
-
-## 4. Create Webhook
-- Manage → Webhooks → Create
-- Name: "orchestrator"
-- URL: `https://<cloud-run-url>/converse`
-- Auth: ID Token (same GCP project)
-- Timeout: 30 seconds
-
-## 5. Build Flows and Pages
-
-### Start Page
-- Entry fulfillment: TTS agent says:
-  "Welcome to the Night Line. Pick your companion.
-   Press 1 for Luna, the runaway heiress…
-   Press 2 for Viktor, the noir detective…
-   Press 3 for Sol, the stranded astronaut…"
-- Routes:
-  - DTMF condition: `$session.params.dtmf_digit = 1` → Luna Page
-  - DTMF condition: `$session.params.dtmf_digit = 2` → Viktor Page
-  - DTMF condition: `$session.params.dtmf_digit = 3` → Sol Page
-
-### Luna Page
-- Entry: Parameter preset: `persona = "luna"`
-- Entry: Webhook fulfillment (tag: `greeting`) → calls POST /converse
-- Transition: → Converse Page
-
-### Viktor Page
-- Entry: Parameter preset: `persona = "viktor"`
-- Entry: Webhook fulfillment (tag: `greeting`)
-- Transition: → Converse Page
-
-### Sol Page
-- Entry: Parameter preset: `persona = "sol"`
-- Entry: Webhook fulfillment (tag: `greeting`)
-- Transition: → Converse Page
-
-### Converse Page
-- Event handlers:
-
-  1. **sys.no-match-default** (fires on every unrecognized utterance)
-     - Webhook fulfillment (tag: `converse`)
-     - Enable: Return Partial Response (filler: "Hmm…")
-
-  2. **sys.no-input-default** (condition: `$session.params.silence_count < 2`)
-     - Static TTS: "Still with me?"
-     - Parameter preset: `silence_count = $sys.func.ADD($session.params.silence_count, 1)`
-
-  3. **sys.no-input-default** (condition: `$session.params.silence_count >= 2`)
-     - Static TTS: "Alright, take care. Call back anytime."
-     - Transition → End Session
-
-  4. **sys.webhook.failed**
-     - Static TTS: "Hmm, lost my train of thought. Say that again?"
-
-- Routes:
-  - Intent: "goodbye" (training phrases: "goodbye", "bye", "good night", "I have to go", "talk later")
-    → Goodbye Page
-
-### Goodbye Page
-- Entry: Static TTS: "Goodnight. Call again soon."
-- Transition → End Session
-
-## 6. Voice Configuration
-Set WaveNet voice per page in Conversation Profile or via SSML in webhook responses.
-By default, use the profile's voice. Consider SSML `<voice>` tags if fine control needed.
-
-## 7. Test
-- Use the CX Simulator to test the flow
-- Dial the number and speak
-- Verify:
-  - DTMF menu works
-  - Greeting is spoken
-  - Conversation loops until hangup
-  - "goodbye" ends call
-  - Silence after 2 prompts ends call
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-cd night-line && git add -A && git commit -m "docs: Dialogflow CX agent setup reference"
-```
-
----
-
-### Task 9: Firestore Seed Script
-
-**Files:**
-- Create: `night-line/firestore/seed.ts`
+- Create: `firestore/seed.ts`
+- Modify: `cx/README.md` — document multi-persona DTMF routes
 
 - [ ] **Step 1: Write seed script**
 
 ```typescript
-// night-line/firestore/seed.ts
+// firestore/seed.ts
 import { Firestore } from "@google-cloud/firestore";
 import * as fs from "fs";
 import * as path from "path";
 
 async function seed() {
   const db = new Firestore({ projectId: process.env.GOOGLE_CLOUD_PROJECT });
-  const personasPath = path.join(__dirname, "personas.json");
-  const personas = JSON.parse(fs.readFileSync(personasPath, "utf-8"));
+  const data = JSON.parse(fs.readFileSync(path.join(__dirname, "personas.json"), "utf-8"));
 
-  for (const [id, persona] of Object.entries(personas)) {
+  for (const [id, persona] of Object.entries(data)) {
     await db.collection("personas").doc(id).set(persona);
-    console.log(`Seeded persona: ${id}`);
+    console.log(`Seeded: ${id} (${(persona as any).display_name}) — voice: ${(persona as any).voice}`);
+  }
+
+  // Verify all persona voices are recognized Google WaveNet IDs
+  const validVoices = [
+    "en-US-Studio-O", "en-US-Studio-M", "en-US-Studio-Q",
+    "en-US-Wavenet-A", "en-US-Wavenet-B", "en-US-Wavenet-C",
+    "en-US-Wavenet-D", "en-US-Wavenet-E", "en-US-Wavenet-F",
+    "en-US-Neural2-A", "en-US-Neural2-B", "en-US-Neural2-C",
+  ];
+  for (const [id, persona] of Object.entries(data)) {
+    const p = persona as any;
+    if (!validVoices.includes(p.voice)) {
+      console.warn(`WARNING: ${id} uses voice '${p.voice}' — may not be a valid WaveNet ID`);
+    }
   }
 
   console.log("Seed complete.");
@@ -1385,119 +1529,64 @@ seed().catch((err) => {
 });
 ```
 
-- [ ] **Step 2: Dry-run seed (requires GCP auth)**
+- [ ] **Step 2: Run seed against production Firestore**
 
 ```bash
-cd night-line && GOOGLE_CLOUD_PROJECT=<your-project> npx ts-node firestore/seed.ts
+cd ~/repos/dgflow && GOOGLE_CLOUD_PROJECT=<project> npx ts-node firestore/seed.ts
 ```
-Expected: Three persona docs written to Firestore.
+Expected: "Seeded: luna (Luna) — voice: en-US-Studio-O", etc. No voice warnings.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Add Viktor and Sol routes to CX agent**
+
+In the Dialogflow CX console, add:
+- Viktor Page: entry `persona = "viktor"`, webhook `greeting`, transition → Converse
+- Sol Page: entry `persona = "sol"`, webhook `greeting`, transition → Converse
+- Start Page DTMF routes: 2 → Viktor, 3 → Sol
+
+- [ ] **Step 4: Test multi-persona**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: Firestore seed script for personas"
+URL=$(gcloud run services describe night-line --region us-central1 --format='value(status.url)')
+
+# Test Viktor greeting
+curl -s -X POST $URL/converse -H "Content-Type: application/json" -d '{
+  "sessionInfo":{"session":"t","parameters":{"persona":"viktor"}},
+  "pageInfo":{"currentPage":"viktor"},"fulfillmentInfo":{"tag":"greeting"},
+  "payload":{"telephony":{"caller_id":"+15551234567"}},"text":""
+}' | jq '.fulfillmentResponse.messages[0].text.text[0]'
+# Expected: "Viktor here. Pour yourself a drink. What's on your mind?"
+
+# Test Sol greeting
+curl -s -X POST $URL/converse -H "Content-Type: application/json" -d '{
+  "sessionInfo":{"session":"t","parameters":{"persona":"sol"}},
+  "pageInfo":{"currentPage":"sol"},"fulfillmentInfo":{"tag":"greeting"},
+  "payload":{"telephony":{"caller_id":"+15551234567"}},"text":""
+}' | jq '.fulfillmentResponse.messages[0].text.text[0]'
+# Expected: "This is Sol, broadcasting from the void..."
 ```
 
----
+- [ ] **Step 5: Dial and test DTMF menu**
 
-### Task 10: Docker + Cloud Run Deployment
-
-**Files:**
-- Create: `night-line/Dockerfile`
-- Create: `night-line/.dockerignore`
-
-- [ ] **Step 1: Create Dockerfile**
-
-```dockerfile
-# night-line/Dockerfile
-FROM node:22-slim AS builder
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY tsconfig.json ./
-COPY src/ ./src/
-RUN npm run build
-
-FROM node:22-slim
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
-
-ENV PORT=8080
-ENV NODE_ENV=production
-EXPOSE 8080
-CMD ["node", "dist/src/index.js"]
-```
-
-- [ ] **Step 2: Create .dockerignore**
-
-```
-node_modules
-dist
-.env
-tests
-firestore
-landing
-cx
-docs
-.git
-```
-
-- [ ] **Step 3: Build and test locally**
-
-```bash
-cd night-line && docker build -t night-line .
-docker run -p 8080:8080 -e GOOGLE_CLOUD_PROJECT=<your-project> -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/key.json -v $GOOGLE_APPLICATION_CREDENTIALS:/tmp/key.json night-line
-```
-Expected: "Night Line orchestrator listening on port 8080"
-
-- [ ] **Step 4: Deploy to Cloud Run**
-
-```bash
-gcloud builds submit --tag gcr.io/<project>/night-line
-gcloud run deploy night-line \
-  --image gcr.io/<project>/night-line \
-  --region us-central1 \
-  --min-instances 1 \
-  --cpu-boost \
-  --timeout 60 \
-  --allow-unauthenticated
-```
-
-- [ ] **Step 5: Verify deployment**
-
-```bash
-curl -X POST https://<cloud-run-url>/converse \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sessionInfo": {"session": "test", "parameters": {"persona": "luna"}},
-    "pageInfo": {"currentPage": "converse"},
-    "fulfillmentInfo": {"tag": "converse"},
-    "payload": {"telephony": {"caller_id": "+15551234567"}},
-    "text": "Hi Luna, how are you?"
-  }'
-```
-Expected: JSON response with `fulfillmentResponse.messages[0].text.text[0]` containing a Luna-style response.
+Dial the number. Press 1, 2, 3 — each should route to correct persona greeting.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: Dockerfile and Cloud Run deployment"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: multi-persona seed script and DTMF wiring"
 ```
 
 ---
 
-### Task 11: Landing Page
+### Task 8: Landing Page
 
 **Files:**
-- Create: `night-line/landing/index.html`
-- Create: `night-line/landing/style.css`
+- Create: `landing/index.html`
+- Create: `landing/style.css`
 
 - [ ] **Step 1: Create landing page**
 
 ```html
-<!-- night-line/landing/index.html -->
+<!-- landing/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1511,192 +1600,121 @@ cd night-line && git add -A && git commit -m "feat: Dockerfile and Cloud Run dep
   <main>
     <h1 class="title">Night Line</h1>
     <p class="subtitle">Someone to talk to. After dark.</p>
-
     <div class="phone-number">
       <span class="label">Call now:</span>
       <span class="number">(XXX) XXX-XXXX</span>
     </div>
-
     <div class="personas">
-      <div class="persona-card">
-        <h2>Luna</h2>
-        <p class="tagline">The runaway heiress with a secret</p>
-      </div>
-      <div class="persona-card">
-        <h2>Viktor</h2>
-        <p class="tagline">The noir detective who's seen too much</p>
-      </div>
-      <div class="persona-card">
-        <h2>Sol</h2>
-        <p class="tagline">The stranded astronaut, light-years from home</p>
-      </div>
+      <div class="persona-card"><h2>Luna</h2><p class="tagline">The runaway heiress with a secret</p></div>
+      <div class="persona-card"><h2>Viktor</h2><p class="tagline">The noir detective who's seen too much</p></div>
+      <div class="persona-card"><h2>Sol</h2><p class="tagline">The stranded astronaut, light-years from home</p></div>
     </div>
-
-    <footer>
-      <p class="disclaimer">$0.99/minute. 18+ only. For entertainment purposes.</p>
-    </footer>
+    <footer><p class="disclaimer">For entertainment purposes. 18+ only.</p></footer>
   </main>
 </body>
 </html>
 ```
 
-- [ ] **Step 2: Create retro CSS**
+- [ ] **Step 2: Create CSS**
 
 ```css
-/* night-line/landing/style.css */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
+/* landing/style.css */
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
-  background: #0a0a0f;
-  color: #e0c0ff;
-  font-family: 'Courier New', Courier, monospace;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  overflow: hidden;
-  position: relative;
+  background:#0a0a0f; color:#e0c0ff; font-family:'Courier New',monospace;
+  min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center;
 }
-
 .scanlines {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.1) 2px,
-    rgba(0, 0, 0, 0.1) 4px
-  );
-  pointer-events: none;
-  z-index: 10;
+  position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 4px);
+  pointer-events:none; z-index:10;
 }
-
-main {
-  position: relative;
-  z-index: 1;
-  padding: 2rem;
-  max-width: 600px;
-}
-
-.title {
-  font-size: 4rem;
-  color: #ff69b4;
-  text-shadow: 0 0 20px #ff69b4, 0 0 60px #ff69b4;
-  letter-spacing: 0.3em;
-  margin-bottom: 0.5rem;
-}
-
-.subtitle {
-  font-size: 1.2rem;
-  color: #8888aa;
-  margin-bottom: 2rem;
-}
-
-.phone-number {
-  background: #151520;
-  border: 2px solid #ff69b4;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 0 30px rgba(255, 105, 180, 0.2);
-}
-
-.phone-number .label {
-  display: block;
-  font-size: 0.9rem;
-  color: #8888aa;
-  margin-bottom: 0.5rem;
-}
-
-.phone-number .number {
-  font-size: 2.5rem;
-  color: #ffffff;
-  letter-spacing: 0.2em;
-}
-
-.personas {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 2rem;
-}
-
-.persona-card {
-  background: #151520;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 1rem;
-  width: 160px;
-}
-
-.persona-card h2 {
-  color: #ff69b4;
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
-}
-
-.persona-card .tagline {
-  color: #8888aa;
-  font-size: 0.8rem;
-}
-
-.disclaimer {
-  font-size: 0.7rem;
-  color: #444;
-  margin-top: 2rem;
-}
+main { position:relative; z-index:1; padding:2rem; max-width:600px; }
+.title { font-size:4rem; color:#ff69b4; text-shadow:0 0 20px #ff69b4,0 0 60px #ff69b4; letter-spacing:.3em; margin-bottom:.5rem; }
+.subtitle { font-size:1.2rem; color:#8888aa; margin-bottom:2rem; }
+.phone-number { background:#151520; border:2px solid #ff69b4; border-radius:8px; padding:1.5rem; margin-bottom:2rem; box-shadow:0 0 30px rgba(255,105,180,.2); }
+.phone-number .label { display:block; font-size:.9rem; color:#8888aa; margin-bottom:.5rem; }
+.phone-number .number { font-size:2.5rem; color:#fff; letter-spacing:.2em; }
+.personas { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:2rem; }
+.persona-card { background:#151520; border:1px solid #333; border-radius:6px; padding:1rem; width:160px; }
+.persona-card h2 { color:#ff69b4; font-size:1.2rem; margin-bottom:.5rem; }
+.persona-card .tagline { color:#8888aa; font-size:.8rem; }
+.disclaimer { font-size:.7rem; color:#444; margin-top:2rem; }
 ```
 
 - [ ] **Step 3: Deploy to Cloud Storage**
 
 ```bash
-gsutil mb gs://night-line-landing
-gsutil cp landing/index.html landing/style.css gs://night-line-landing/
-gsutil iam ch allUsers:objectViewer gs://night-line-landing
-gsutil web set -m index.html gs://night-line-landing
+gsutil mb gs://<PROJECT>-night-line-landing
+gsutil cp landing/index.html landing/style.css gs://<PROJECT>-night-line-landing/
+gsutil iam ch allUsers:objectViewer gs://<PROJECT>-night-line-landing
+gsutil web set -m index.html gs://<PROJECT>-night-line-landing
+echo "https://storage.googleapis.com/<PROJECT>-night-line-landing/index.html"
 ```
 
-- [ ] **Step 4: Verify**
-
-Open `https://storage.googleapis.com/night-line-landing/index.html` in a browser. Verify retro aesthetic, persona cards, and phone number display.
+- [ ] **Step 4: Open in browser, verify retro aesthetic and persona cards**
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "feat: retro landing page"
+cd ~/repos/dgflow && git add -A && git commit -m "feat: retro landing page"
 ```
 
 ---
 
-### Task 12: Final Integration Verification
+### Task 9: Production Deployment — Final Wiring
 
-- [ ] **Step 1: Run full test suite**
+**Files:**
+- Modify: `cx/README.md` — final confirmations
+
+- [ ] **Step 1: Redeploy with min-instances and cpu-boost**
 
 ```bash
-cd night-line && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest --forceExit --verbose
+gcloud run deploy night-line \
+  --image gcr.io/<PROJECT>/night-line \
+  --region us-central1 \
+  --min-instances 1 \
+  --cpu-boost \
+  --timeout 60 \
+  --allow-unauthenticated
+```
+
+- [ ] **Step 2: Verify health check and warm instance**
+
+```bash
+URL=$(gcloud run services describe night-line --region us-central1 --format='value(status.url)')
+curl -s $URL/health
+# Expected: {"status":"ok"}
+```
+
+- [ ] **Step 3: Finalize Dialogflow CX configuration**
+
+In the CX console, confirm:
+- Webhook timeout: 30 seconds
+- Partial responses: enabled on Converse Page no-match handler
+- Phone Gateway: Essentials Edition, US number live
+- Conversation Profile: `phone_call` speech model
+
+- [ ] **Step 4: Run full test suite**
+
+```bash
+cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest --forceExit --verbose
 ```
 Expected: All tests PASS.
 
-- [ ] **Step 2: Manual end-to-end test**
+- [ ] **Step 5: End-to-end phone call**
 
-1. Deploy orchestrator to Cloud Run (Task 10)
-2. Seed Firestore with personas (Task 9)
-3. Configure Dialogflow CX agent (Task 8)
-4. Dial the phone number
-5. Verify:
-   - DTMF menu plays
-   - Press 1 → Luna greeting plays
-   - Speak → Luna responds in character
-   - Say "politics" → deflection
-   - Say "goodbye" → call ends
-   - Stay silent 3 times → call ends
-   - Call back → Luna remembers you (if facts were extracted)
+Dial the number. Verify:
+- DTMF menu works (1/2/3)
+- Each persona greets in character
+- Conversation flows naturally (Gemini responding)
+- "politics" → deflection
+- "goodbye" → call ends
+- Silence 2× → call ends
+- Call back → persona remembers facts if extracted
 
-- [ ] **Step 3: Commit any fixes**
+- [ ] **Step 6: Commit**
 
 ```bash
-cd night-line && git add -A && git commit -m "chore: final integration verification"
+cd ~/repos/dgflow && git add -A && git commit -m "chore: production deployment, final integration verification"
 ```
