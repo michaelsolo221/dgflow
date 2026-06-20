@@ -1,0 +1,49 @@
+{
+  "name": "night_line",
+  "displayName": "Night Line",
+  "description": "AI companion phone service — late-night conversations with persona-driven characters",
+  "rootAgent": "",
+  "tools": [],
+  "modelSettings": {
+    "model": "gemini-3.1-flash-live"
+  },
+  "languageSettings": {
+    "defaultLanguageCode": "en-US"
+  },
+  "timeZoneSettings": {
+    "timeZone": "America/New_York"
+  },
+  "audioProcessingConfig": {
+    "synthesizeSpeechConfigs": {
+      "en-US": {
+        "speakingRate": 1.0
+      }
+    }
+  },
+  "defaultChannelProfile": {},
+  "loggingSettings": {
+    "conversationLoggingSettings": {},
+    "evaluationAudioRecordingConfig": {
+      "gcsBucket": "gs://YOUR_PROJECT_ID-night-line-evals"
+    }
+  },
+  "toolExecutionMode": "PARALLEL",
+  "evaluationMetricsThresholds": {
+    "goldenEvaluationMetricsThresholds": {
+      "turnLevelMetricsThresholds": {
+        "semanticSimilaritySuccessThreshold": 3,
+        "overallToolInvocationCorrectnessThreshold": 1
+      },
+      "toolMatchingSettings": {
+        "extraToolCallBehavior": "ALLOW"
+      }
+    },
+    "goldenHallucinationMetricBehavior": "DISABLED"
+  },
+  "variableDeclarations": [
+    {"name": "caller_profile", "description": "JSON string with caller memory: caller_id, call_count, facts map, recent_turns", "schema": {"type": "STRING", "default": "{}"}},
+    {"name": "_initialized", "description": "Turn guard flag — set to 'true' after first init. STRING type because platform BOOLEAN accessed as string", "schema": {"type": "STRING", "default": ""}},
+    {"name": "persona_id", "description": "Active persona identifier: luna, viktor, or sol", "schema": {"type": "STRING", "default": ""}},
+    {"name": "caller_id", "description": "E.164 phone number injected by CXAS telephony layer", "schema": {"type": "STRING", "default": ""}}
+  ]
+}
