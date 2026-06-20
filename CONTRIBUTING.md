@@ -8,11 +8,63 @@
 - [uv](https://docs.astral.sh/uv/) (Astral's package manager)
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install)
 
+### GCP Infrastructure Setup
+
+Before running any CXAS commands, provision the required GCP resources:
+
+```bash
+# 1. Enable required APIs
+gcloud services enable dialogflow.googleapis.com aiplatform.googleapis.com firestore.googleapis.com --project=YOUR_PROJECT_ID
+
+# 2. Authenticate with Application Default Credentials
+gcloud auth application-default login
+# Verify:
+gcloud auth application-default print-access-token
+
+# 3. Create Firestore database in Native mode (nam5)
+gcloud firestore databases create --database=night-line --location=nam5 --type=firestore-native --project=YOUR_PROJECT_ID
+
+# 4. Create GCS bucket for audio eval recordings
+gcloud storage buckets create gs://YOUR_PROJECT_ID-night-line-evals --location=us --project=YOUR_PROJECT_ID
+```
+
+Replace `YOUR_PROJECT_ID` with your actual GCP project ID.
+
 ### Clone and Setup
 
 ```bash
-git clone https://github.com/your-org/dgflow.git
+git clone https://github.com/michaelsolo221/dgflow.git
 cd dgflow
+```
+
+### Project Setup
+
+Run the setup script to create the virtual environment and install core dependencies:
+
+```bash
+.agents/skills/cxas-agent-foundry/scripts/setup.sh
+```
+
+This creates `.venv/` with `cxas-scrapi` installed. Activate the environment:
+
+```bash
+source .venv/bin/activate
+```
+
+Then create the project files:
+
+```bash
+python .agents/skills/cxas-agent-foundry/scripts/setup-project.py \
+  --project-id YOUR_PROJECT_ID \
+  --name night-line \
+  --modality audio
+```
+
+This creates `night-line/gecx-config.json` and `.active-project`. Replace `YOUR_PROJECT_ID` with your GCP project ID.
+
+Finally, install development dependencies:
+
+```bash
 uv sync --dev
 ```
 
