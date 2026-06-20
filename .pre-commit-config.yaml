@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/hukkin/mdformat
+    rev: 0.7.17
+    hooks:
+      - id: mdformat
+        files: '^.*SKILL\.md$'
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/pytest-dev/pytest
+    rev: 8.2.0
+    hooks:
+      - id: pytest
+        files: '^tests/.*test_.*\.py$'
+        pass_filenames: true
+        additional_dependencies: []
+
+  - repo: local
+    hooks:
+      - id: brand-check-code
+        name: Brand Check (Code)
+        entry: "BRAND_CHECK_SKIP=1 echo 'brand-check-code: placeholder — requires Gemini API key'"
+        language: system
+        types: [python]
+        stages: [pre-commit]
+
+      - id: brand-check-msg
+        name: Brand Check (Commit Message)
+        entry: "BRAND_CHECK_SKIP=1 echo 'brand-check-msg: placeholder — requires Gemini API key'"
+        language: system
+        stages: [commit-msg]
