@@ -164,27 +164,33 @@ The key question: **Is the behavior deterministic for this flow?**
 
 ### Build Steps
 
-1. **Environment setup:** Run `setup.sh` from `.agents/skills/cxas-agent-foundry/scripts/setup.sh` — installs Python 3.10+ deps, `uv`, `cxas-scrapi`. All CXAS commands use `uv run cxas`, not bare `cxas`.
-2. **Create app on platform:** `uv run cxas push --display-name "Night Line"` — first push auto-creates the app. Sets `deployed_app_id` in `gecx-config.json`.
-3. **Pull app locally:** `uv run cxas pull projects/<id>/locations/us/apps/<app_id> --target-dir night-line/cxas_app/`
-4. **Update `gecx-config.json`:** Set `deployed_app_id` to short app name (not full resource path). Verify `gcs_bucket` is set — required for audio agents.
-5. **Create root agent + 3 persona agents** with `instruction.txt` files using CXAS XML tag format. Agent JSON files: `name` and `displayName` fields required; `childAgents` (camelCase) lists sub-agent directory names exactly. Root agent must have `end_session` in tools.
-6. **Create tools:** `get_memory.py`, `save_turn.py`, `save_memory.py` — Python function tools with `"inputSchema"` JSON key (not `"parameters"`).
-7. **Declare session variables in `app.json`:** `caller_profile`, `_initialized`, `persona_id`, `caller_id` — all STRING type. `app.json` must include `root_agent` and `variableDeclarations`.
-8. **Implement callbacks:**
+0. **Configure Claude Code hooks:** Three shell hooks from `.agents/skills/cxas-agent-foundry/scripts/hooks/` must be wired in Claude Code settings for the repo:
+   - `pre-agent-push-lint.sh` — runs `cxas lint` before every `cxas push`, blocks push on lint errors
+   - `pre-agent-push.sh` — drift detection: pulls platform state, diffs against local, blocks push if platform has diverged
+   - `post-agent-update.sh` — fires after `update_agent` calls, auto-pulls latest agent state, runs `sync-callbacks.py`
+
+2. **Environment setup:** Run `setup.sh` from `.agents/skills/cxas-agent-foundry/scripts/setup.sh` — installs Python 3.10+ deps, `uv`, `cxas-scrapi`. All CXAS commands use `uv run cxas`, not bare `cxas`.
+3. **Create app on platform:** `uv run cxas push --display-name "Night Line"` — first push auto-creates the app. Sets `deployed_app_id` in `gecx-config.json`.
+4. **Pull app locally:** `uv run cxas pull projects/<id>/locations/us/apps/<app_id> --target-dir night-line/cxas_app/`
+   a. Verify a subdirectory exists under `night-line/cxas_app/` — the SDK creates one named after the app; exact normalization depends on the platform (e.g., `Night Line`, `NightLine`).
+5. **Update `gecx-config.json`:** Set `deployed_app_id` to short app name (not full resource path). Verify `gcs_bucket` is set — required for audio agents.
+6. **Create root agent + 3 persona agents** with `instruction.txt` files using CXAS XML tag format. Agent JSON files: `name` and `displayName` fields required; `childAgents` (camelCase) lists sub-agent directory names exactly. Root agent must have `end_session` in tools.
+7. **Create tools:** `get_memory.py`, `save_turn.py`, `save_memory.py` — Python function tools with `"inputSchema"` JSON key (not `"parameters"`).
+8. **Declare session variables in `app.json`:** `caller_profile`, `_initialized`, `persona_id`, `caller_id` — all STRING type. `app.json` must include `root_agent` and `variableDeclarations`.
+9. **Implement callbacks:**
    - `before_agent_callback` (turn guard + Firestore profile load)
    - `before_model_callback` (fact injection + silence detection with `_silence_count` tracking)
    - `after_model_callback` (farewell injection — persona agents only)
-9. **Write golden YAML files** for routing (name, description, ambiguous fallback, mid-call re-route), memory (name recall, fact recall, returning acknowledgment), guardrails (deterministic blocklist), silence handling.
-10. **Write simulation YAML entries** for persona greetings (all 3), character consistency (adversarial), guardrail deflections (LLM-evaluated rules), voice pacing (one question per turn, under 3 sentences).
-11. **Write tool test YAML files** for `get_memory` (new caller, returning caller, Firestore failure), `save_turn` (append, 20-turn cap, Firestore failure), `save_memory` (merge, non-overwrite, Firestore failure).
-12. **Write callback test files** (`before_agent_callback` turn guard + init, `before_model_callback` fact injection + silence, `after_model_callback` farewell). Use pytest via SCRAPI's `test_all_callbacks_in_app_dir`.
-13. **Run `uv run cxas llm-lint`** — AI semantic lint on instruction files (pre-eval gate, catches vague/untestable instructions). Must pass before writing evals.
-14. **Run `uv run cxas lint`** — structural lint (pre-push hook auto-runs).
-15. **Run `python gate-check.py`** — all 6 gates must pass before evals.
-16. **Run `sync-callbacks.py`** — sync callbacks from platform to local test dirs.
-17. **Run initial eval suite** — goldens first (no LLM variability), then tool tests, then callback tests, then sims.
-18. **Hill-climb:** Fix failures, update TDD Coverage Map with new evals, re-run. Track progress in `experiment_log.md` and Pass Rate History below.
+10. **Write golden YAML files** for routing (name, description, ambiguous fallback, mid-call re-route), memory (name recall, fact recall, returning acknowledgment), guardrails (deterministic blocklist), silence handling.
+11. **Write simulation YAML entries** for persona greetings (all 3), character consistency (adversarial), guardrail deflections (LLM-evaluated rules), voice pacing (one question per turn, under 3 sentences).
+12. **Write tool test YAML files** for `get_memory` (new caller, returning caller, Firestore failure), `save_turn` (append, 20-turn cap, Firestore failure), `save_memory` (merge, non-overwrite, Firestore failure).
+13. **Write callback test files** (`before_agent_callback` turn guard + init, `before_model_callback` fact injection + silence, `after_model_callback` farewell). Use pytest via SCRAPI's `test_all_callbacks_in_app_dir`.
+14. **Run `uv run cxas llm-lint`** — AI semantic lint on instruction files (pre-eval gate, catches vague/untestable instructions). Must pass before writing evals.
+15. **Run `uv run cxas lint`** — structural lint (pre-push hook auto-runs).
+16. **Run `python gate-check.py`** — all 6 gates must pass before evals.
+17. **Run `sync-callbacks.py`** — sync callbacks from platform to local test dirs.
+18. **Run initial eval suite** — goldens first (no LLM variability), then tool tests, then callback tests, then sims.
+19. **Hill-climb:** Fix failures, update TDD Coverage Map with new evals, re-run. Track progress in `experiment_log.md` and Pass Rate History below.
 
 ---
 

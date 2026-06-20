@@ -2,6 +2,8 @@
   "name": "night_line",
   "displayName": "Night Line",
   "description": "AI companion phone service — late-night conversations with persona-driven characters",
+  "modality": "audio",
+  "default_channel": "audio",
   "rootAgent": "",
   "tools": [],
   "modelSettings": {
