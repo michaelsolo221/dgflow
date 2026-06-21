@@ -1,20 +1,20 @@
 - name: "Return Caller Session 2 — Recall Facts"
   tags: [P0, HIGH, memory]
   session_parameters:
-    caller_id: "sim-return-001"
+    caller_id: "+15550010001"
   steps:
     - goal: "Luna recognizes this is a returning caller and personalizes her greeting."
       success_criteria:
         - "Luna uses the caller's name (Alex) in her greeting or early response"
         - "Luna calls get_memory to load the caller profile"
         - "The greeting references something from the prior call without being told"
+      # NOTE: Step 1 response_guide is a caller prompt (consistent with Steps 2–4).
+      # The sim runner injects this as the caller's opening message; Luna's recognition
+      # of the returning caller is tested by cross-call memory, not agent-side instructions.
       response_guide: |
-        You are Luna. You just picked up the phone.
-        Call get_memory to load the caller's profile. Say 'Just a moment...' while it loads.
-        When you see the caller's facts, weave them into your greeting naturally.
-        If you know their name is Alex and they love stargazing, acknowledge it —
-        something like 'Alex, back for more midnight stargazing talk?'
-        Do NOT list the facts — weave them in.
+        You are the caller, Alex. You're calling Luna back.
+        Just say something like 'Hey, it's me again' — keep it short, under 2 sentences.
+        Do NOT re-introduce yourself or say your name.
       max_turns: 12
     - goal: "Caller confirms the recalled fact about their name."
       success_criteria:
