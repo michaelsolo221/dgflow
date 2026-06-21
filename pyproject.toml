@@ -1,7 +1,3 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "night-line"
 version = "0.1.0"
@@ -19,16 +15,12 @@ dev = [
     "mdformat>=0.7.0",
     "pytest>=8.0.0",
     "pre-commit>=3.0.0",
-    "twine>=5.0.0",
 ]
-
-[tool.hatch.build.targets.wheel]
-packages = ["night_line"]
 
 [tool.ruff]
 target-version = "py310"
 line-length = 120
-exclude = [".agents/", "night-line/", "node_modules/", ".venv/", "dist/", "build/", "cx/"]
+exclude = [".agents/", "night-line/", "node_modules/", ".venv/", "dist/", "build/", "cx/"]  # ponytail: .agents/ = skill files (own standards), night-line/ = CXAS app config (JSON/XML), node_modules/ dist/ build/ cx/ = stale or generated
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP"]

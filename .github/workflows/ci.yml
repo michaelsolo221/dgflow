@@ -17,7 +17,6 @@ jobs:
         with:
           cache: true
       - name: Set up Python
-        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
@@ -29,7 +28,7 @@ jobs:
       - name: Mdformat check
         run: uv run mdformat --check docs/ night-line/ CONTRIBUTING.md
 
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,28 +40,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build package
-        run: uv build
-      - name: Check distribution
-        run: uvx twine check dist/*
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.10']
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          cache: true
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: uv sync --extra dev
       - name: Run tests
         run: uv run pytest tests/ -v
+

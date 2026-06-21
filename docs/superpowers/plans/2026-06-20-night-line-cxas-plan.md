@@ -223,7 +223,7 @@ tools/
 {
   "name": "get_memory",
   "description": "Retrieves the caller's profile and recent conversation turns from persistent memory. Call this at the start of a conversation to recall what you know about this caller.",
-  "parameters": {
+  "inputSchema": {
     "type": "object",
     "properties": {},
     "required": []
@@ -257,7 +257,7 @@ def get_memory(context):
 {
   "name": "save_turn",
   "description": "Saves the current conversation turn to persistent memory. Call after every exchange — once for the caller's message and once for your response.",
-  "parameters": {
+  "inputSchema": {
     "type": "object",
     "properties": {
       "role": { "type": "string", "description": "Who spoke: 'caller' or the persona id (e.g. 'luna')" },
@@ -306,7 +306,7 @@ def _append_turn(transaction, ref, persona_id, turn):
 {
   "name": "save_memory",
   "description": "Saves a new fact you learned about the caller to persistent memory. Call this whenever the caller reveals something worth remembering: their name, job, pet, hobby, location, etc.",
-  "parameters": {
+  "inputSchema": {
     "type": "object",
     "properties": {
       "key": { "type": "string", "description": "What the fact is about, e.g. 'name', 'job', 'pet'" },
@@ -471,8 +471,12 @@ def before_agent_callback(callback_context):
             profile = {"caller_id": caller_id, "call_count": 0, "facts": {}, "recent_turns": []}
             db.collection("callers").document(caller_id).set(profile)
 
-        profile["call_count"] = profile.get("call_count", 0) + 1
-        db.collection("callers").document(caller_id).set({"call_count": profile["call_count"]}, merge=True)
+        # ponytail: atomic increment avoids read-modify-write race under concurrent calls
+        db.collection("callers").document(caller_id).set({
+            "call_count": firestore.Increment(1)
+        }, merge=True)
+
+        profile["call_count"] = profile.get("call_count", 0) + 1  # local copy for state
 
         state["caller_profile"] = json.dumps(profile)
         state["persona_id"] = persona_id
@@ -490,7 +494,7 @@ def before_agent_callback(callback_context):
 # callbacks/before_model_callback/python_code.py
 import json
 
-def before_model_callback(callback_context):
+def before_model_callback(callback_context, llm_request):
     state = callback_context.state
     raw = state.get("caller_profile", "{}")
 
@@ -508,7 +512,7 @@ def before_model_callback(callback_context):
     lines = [f"- {k}: {v}" for k, v in facts.items()]
     fact_block = "\n".join(lines) if lines else "Nothing known yet."
 
-    callback_context.inject_prompt(
+    callback_context.agent_instruction_override = (
         f"[Memory] You know this about the caller (call #{call_count}):\n{fact_block}\n"
         f"Use this naturally — don't recite it, just let it inform the conversation."
     )

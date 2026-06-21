@@ -34,10 +34,9 @@ def test_viktor_tagline_matches_personas_json():
     import json
 
     personas = json.loads(Path("firestore/personas.json").read_text())
-    viktor_tagline_fragment = personas["viktor"]["tagline"].split()[-2]  # "too"
+    viktor_tagline = personas["viktor"]["tagline"]  # "The noir detective who's seen too much"
     text = INSTRUCTION.read_text()
     welcome_start = text.index('<step name="Welcome">')
     welcome_end = text.index("</step>", welcome_start)
     welcome_block = text[welcome_start:welcome_end]
-    assert "seen it all" not in welcome_block
-    assert viktor_tagline_fragment in welcome_block
+    assert viktor_tagline.lower() in welcome_block.lower(), f"Expected '{viktor_tagline}' in welcome block"

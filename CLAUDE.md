@@ -12,6 +12,10 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 Single-context — one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
 
+## CXAS Conventions
+
+Before writing or reviewing CXAS agent code, read `docs/conventions.md`. It is the definitive source for naming, CLI invocation, `app.json` required fields, YAML gotchas, platform pitfalls, callback signatures, CI hygiene, and eval session parameters.
+
 ## Repository architecture
 
 | Repo | Purpose |

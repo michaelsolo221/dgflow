@@ -2,6 +2,7 @@
   "name": "8093c2b8-e21e-4435-a5e4-dd454657d183",
   "displayName": "Night Line",
   "description": "AI companion phone service — late-night conversations with persona-driven characters",
+  "rootAgent": "agents/root_agent",
   "tools": [],
   "modelSettings": {
     "model": "gemini-3.1-flash-live"

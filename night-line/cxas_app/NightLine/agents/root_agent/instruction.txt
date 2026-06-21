@@ -97,8 +97,8 @@
 
                 "Welcome to Night Line — your late-night companion service.
                 I've got three friends you might want to talk to: there's Luna,
-                the heiress with a secret. Viktor, a detective who's seen too much.
-                And Sol, an astronaut broadcasting from deep space.
+                the runaway heiress with a secret. Viktor, the noir detective who's seen too much.
+                And Sol, the stranded astronaut, light-years from home.
                 Who sounds good to you?"
 
                 Then wait for the caller's response and proceed to Interpret_Response.
