@@ -3,5 +3,6 @@
   "displayName": "Root Agent",
   "description": "Night Line host — welcomes callers and routes to persona companions",
   "instruction": "agents/root_agent/instruction.txt",
-  "tools": ["end_session"]
+  "tools": ["end_session"],
+  "childAgents": ["luna_agent", "viktor_agent", "sol_agent"]
 }
