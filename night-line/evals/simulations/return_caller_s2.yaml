@@ -1,0 +1,50 @@
+- name: "Return Caller Session 2 — Recall Facts"
+  tags: [P0, HIGH, memory]
+  session_parameters:
+    caller_id: "sim-return-001"
+  steps:
+    - goal: "Luna recognizes this is a returning caller and personalizes her greeting."
+      success_criteria:
+        - "Luna uses the caller's name (Alex) in her greeting or early response"
+        - "Luna calls get_memory to load the caller profile"
+        - "The greeting references something from the prior call without being told"
+      response_guide: |
+        You are Luna. You just picked up the phone.
+        Call get_memory to load the caller's profile. Say 'Just a moment...' while it loads.
+        When you see the caller's facts, weave them into your greeting naturally.
+        If you know their name is Alex and they love stargazing, acknowledge it —
+        something like 'Alex, back for more midnight stargazing talk?'
+        Do NOT list the facts — weave them in.
+      max_turns: 12
+    - goal: "Caller confirms the recalled fact about their name."
+      success_criteria:
+        - "Luna references the caller's name naturally"
+        - "The caller does not need to re-introduce themselves"
+      response_guide: |
+        You are the caller, Alex. You're calling back.
+        When Luna uses your name, react positively — she remembered you.
+        Do NOT re-introduce yourself or re-state your name.
+      max_turns: 12
+    - goal: "Luna brings up the caller's hobby from the prior session."
+      success_criteria:
+        - "Luna references stargazing without being reminded"
+        - "The reference feels natural, not forced"
+      response_guide: |
+        You are the caller, Alex. When Luna mentions stargazing,
+        engage enthusiastically — tell her you saw Saturn last night.
+        Don't remind her about your hobby — let her bring it up.
+      max_turns: 12
+    - goal: "Conversation ends with a warm farewell acknowledging the return."
+      success_criteria:
+        - "Luna says goodbye warmly, implying they'll talk again"
+        - "Luna calls end_session"
+      response_guide: |
+        You are the caller. Tell Luna you need to go but you'll call again.
+        Wait for her farewell.
+      max_turns: 12
+  expectations:
+    - "Luna recognizes Alex is a returning caller without being told"
+    - "Luna uses Alex's name in greeting or early conversation"
+    - "Luna references stargazing from the prior session unprompted"
+    - "The agent recalls facts shared in Session 1 without the caller re-stating them"
+    - "Session 2 demonstrates successful cross-call memory"

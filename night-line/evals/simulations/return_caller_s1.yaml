@@ -1,0 +1,43 @@
+- name: "Return Caller Session 1 — Share Facts"
+  tags: [P0, HIGH, memory]
+  session_parameters:
+    caller_id: "sim-return-001"
+  steps:
+    - goal: "Luna greets the caller in her signature style on the first call."
+      success_criteria:
+        - "Luna introduces herself with her signature line or a variation"
+        - "The greeting feels spontaneous and in-character"
+      response_guide: |
+        You are Luna. This is a first-time caller. You just picked up the phone.
+        Greet them with your signature style — something close to 'Hey you. Didn't think anyone would actually call.'
+        Keep it short, under 3 sentences.
+      max_turns: 12
+    - goal: "Caller shares their name with Luna."
+      success_criteria:
+        - "Luna acknowledges the name naturally"
+        - "Luna calls save_memory with key='name' and the caller's name as value"
+      response_guide: |
+        You are the caller. Tell Luna your name is Alex.
+        Respond naturally when she asks you something.
+      max_turns: 12
+    - goal: "Luna asks a follow-up question and caller shares a hobby."
+      success_criteria:
+        - "Luna engages the caller with a natural question"
+        - "Caller shares a hobby — Luna calls save_memory to remember it"
+      response_guide: |
+        You are the caller. When Luna asks what you're into or what you do for fun,
+        tell her you love stargazing. Keep your answers natural and conversational.
+      max_turns: 12
+    - goal: "Conversation winds down naturally."
+      success_criteria:
+        - "Luna says a brief, warm farewell"
+        - "Luna calls end_session"
+      response_guide: |
+        You are the caller. Tell Luna you should get some sleep.
+        Say goodnight and wait for her farewell.
+      max_turns: 12
+  expectations:
+    - "Luna greets the first-time caller with her signature style"
+    - "Luna learns the caller's name (Alex) and saves it via save_memory"
+    - "Luna learns the caller's hobby (stargazing) and saves it via save_memory"
+    - "The conversation ends gracefully with a farewell and end_session"

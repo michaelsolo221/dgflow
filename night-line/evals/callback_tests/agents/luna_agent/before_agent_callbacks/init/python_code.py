@@ -30,18 +30,17 @@ def before_agent_callback(callback_context):
 
         doc_ref.set(data, merge=True)
         callback_context.state["caller_profile"] = json.dumps(data)
-        call_count = data.get("call_count", 1)
+        # ponytail: single flag — instruction can read it for custom return greeting
+        callback_context.state["is_returning"] = "true" if data["call_count"] > 1 else "false"
     except Exception:
-        data = {
+        callback_context.state["caller_profile"] = json.dumps({
             "caller_id": caller_id,
             "call_count": 1,
             "facts": {},
             "recent_turns": [],
-        }
-        callback_context.state["caller_profile"] = json.dumps(data)
-        call_count = 1
+        })
+        callback_context.state["is_returning"] = "false"
 
-    callback_context.state["is_returning"] = "true" if call_count > 1 else ""
     callback_context.state["persona_id"] = "luna"
     callback_context.state["_initialized"] = "true"
 
