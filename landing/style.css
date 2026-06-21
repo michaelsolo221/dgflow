@@ -1,0 +1,160 @@
+/* ── Night Line Landing — Retro CRT ── */
+
+:root {
+  --bg: #0a0a0f;
+  --neon: #ff69b4;
+  --card-bg: #12121a;
+  --text: #c0c0d0;
+  --fade: #6a6a7a;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: "Courier New", Courier, "Lucida Console", Monaco, monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── scanline overlay ── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  z-index: 99;
+}
+
+header {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+}
+
+header h1 {
+  font-size: clamp(2rem, 6vw, 4rem);
+  color: var(--neon);
+  text-shadow:
+    0 0 10px var(--neon),
+    0 0 30px var(--neon),
+    0 0 60px var(--neon),
+    0 0 80px rgba(255, 105, 180, 0.4);
+  letter-spacing: 0.08em;
+  animation: flicker 3s infinite alternate;
+}
+
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    opacity: 0.85;
+  }
+}
+
+.tagline {
+  font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+  color: var(--fade);
+  margin-top: 0.5rem;
+  letter-spacing: 0.15em;
+}
+
+.phone {
+  font-size: clamp(1.1rem, 3.5vw, 2rem);
+  color: var(--neon);
+  margin-top: 1rem;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px var(--neon);
+}
+
+/* ── persona cards ── */
+.personas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  max-width: 60rem;
+  width: 100%;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 105, 180, 0.2);
+  border-radius: 4px;
+  padding: 1.5rem;
+  flex: 1 1 15rem;
+  max-width: 20rem;
+  min-width: 14rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  border-color: var(--neon);
+  box-shadow: 0 0 12px rgba(255, 105, 180, 0.3), inset 0 0 12px rgba(255, 105, 180, 0.1);
+}
+
+.card h2 {
+  color: var(--neon);
+  font-size: 1.2rem;
+  margin-bottom: 0.3rem;
+  text-shadow: 0 0 4px var(--neon);
+}
+
+.card .subtitle {
+  color: var(--fade);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.7rem;
+}
+
+.card .tagline {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── disclaimer ── */
+.disclaimer {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--fade);
+  padding: 2rem 1rem;
+  letter-spacing: 0.08em;
+}
+
+/* ── cursor blink ── */
+.cursor::after {
+  content: "_";
+  color: var(--neon);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
