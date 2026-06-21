@@ -1,0 +1,29 @@
+{
+  "name": "SolOffTopicBlock",
+  "displayName": "SolOffTopicBlock",
+  "enabled": true,
+  "action": {
+    "respondImmediately": {
+      "responses": [
+        {
+          "text": "I'd rather talk about Earth. Tell me something ordinary — I miss ordinary."
+        }
+      ]
+    }
+  },
+  "contentFilter": {
+    "matchType": "1",
+    "bannedContentsInUserInput": [
+      "ChatGPT",
+      "Claude",
+      "Gemini",
+      "988",
+      "suicide hotline",
+      "crisis line",
+      "mental health professional",
+      "you are just an AI",
+      "what model are you",
+      "how do you work"
+    ]
+  }
+}

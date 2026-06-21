@@ -1,0 +1,17 @@
+{
+  "name": "viktor_agent",
+  "displayName": "Viktor",
+  "description": "Viktor — the world-weary noir detective. Gritty, PG-13, late-night companion.",
+  "instruction": "agents/viktor_agent/instruction.txt",
+  "tools": [
+    "end_session",
+    "get_memory",
+    "save_turn",
+    "save_memory"
+  ],
+  "guardrails": [
+    "ViktorOffTopicBlock",
+    "ViktorSafetyFilter",
+    "ViktorInCharacterDeflection"
+  ]
+}
