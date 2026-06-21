@@ -104,3 +104,28 @@ docs/              Conventions, ADRs, agent skill docs
 scripts/           Utility scripts (gate-check, seed-personas)
 .agents/skills/    CXAS skill definitions
 ```
+
+## Contributor Workflows
+
+### Add a Persona Agent
+
+Files to touch, in order:
+
+1. **Create agent directory** — `night-line/cxas_app/NightLine/agents/<name>/`
+   - `instruction.txt` — XML-tagged (`<role>`, `<persona>`, `<primary_goal>`, `<taskflow>`, `<constraints>`)
+   - `<name>.json` — `name`, `displayName`, `tools: ["end_session", "get_memory", "save_turn", "save_memory"]`
+1. **Register in app.json** — add `"<name>"` to `childAgents` array
+1. **Wire callbacks** — copy `*_callbacks/` directories from an existing persona agent (same callback code, per-agent scope)
+1. **Add voice** — update `gecx-config.json` `agentVoiceMapping` with the new agent's voice
+1. **Add persona to seed data** — `firestore/personas.json`: add entry with `voice_id`, `tagline`, `name`
+1. **Teach the root agent to route** — update `root_agent/instruction.txt` `<step name="Route">`: add description keywords and transfer logic
+1. **Add eval coverage** (see `night-line/tdd.md` coverage map):
+   - Routing golden: does the root agent transfer to the new persona?
+   - Greeting sim: does the persona greet in character?
+   - Guardrail golden/sim: per-persona deflection responses
+1. **Lint + push** — `cxas lint` then `cxas push` (see conventions.md §2)
+1. **Run evals** — `cxas eval run` on the new evals; verify all pass
+1. **Test live** — place a call, confirm routing to the new persona and character-consistent responses
+
+See `docs/conventions.md` for naming rules, callback signatures, and platform gotchas.
+See `night-line/tdd.md` §Agent Design for architecture decisions.
