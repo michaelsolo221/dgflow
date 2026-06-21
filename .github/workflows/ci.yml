@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -27,7 +32,7 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
       - name: Mdformat check
-        run: uv run mdformat --check docs/ night-line/ CONTRIBUTING.md
+        run: uv run mdformat --check docs/ night-line/ README.md CLAUDE.md CONTEXT.md CONTRIBUTING.md
 
   test:
     runs-on: ubuntu-latest
