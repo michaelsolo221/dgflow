@@ -29,19 +29,16 @@ def before_agent_callback(callback_context):
             }
 
         doc_ref.set(data, merge=True)
-
         callback_context.state["caller_profile"] = json.dumps(data)
-        callback_context.state["persona_id"] = "luna"
-        callback_context.state["_initialized"] = "true"
     except Exception:
-        # Safe default — let the call proceed without Firestore
         callback_context.state["caller_profile"] = json.dumps({
             "caller_id": caller_id,
             "call_count": 1,
             "facts": {},
             "recent_turns": [],
         })
-        callback_context.state["persona_id"] = "luna"
-        callback_context.state["_initialized"] = "true"
+
+    callback_context.state["persona_id"] = "luna"
+    callback_context.state["_initialized"] = "true"
 
     return None

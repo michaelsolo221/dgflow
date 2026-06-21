@@ -6,6 +6,8 @@ from typing import Optional
 
 
 def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:  # noqa: F821
+    from gecx.types import Content, Part
+
     state = callback_context.state
 
     # ---- Silence detection ----
@@ -19,20 +21,14 @@ def before_model_callback(callback_context: CallbackContext, llm_request: LlmReq
             state["_silence_count"] = str(silence_count)
 
             if silence_count == 1:
-                # First silence — check-in, in character
-                from gecx.types import Content, Part
                 return Content(role="model", parts=[Part.from_text(
                     text="Still there? I was just enjoying the quiet for a second."
                 )])
             elif silence_count == 2:
-                # Second silence — more direct
-                from gecx.types import Content, Part
                 return Content(role="model", parts=[Part.from_text(
                     text="Hey... you still with me? I was just getting to the good part."
                 )])
             elif silence_count >= 3:
-                # Third silence — farewell
-                from gecx.types import Content, Part
                 return Content(role="model", parts=[Part.from_text(
                     text="Guess you had to run. Call me back when you can't sleep. Goodnight."
                 )])
@@ -54,6 +50,5 @@ def before_model_callback(callback_context: CallbackContext, llm_request: LlmReq
         facts_text += f"- {key}: {value}\n"
     facts_text += "\nUse these facts naturally in conversation. Don't list them — weave them in."
 
-    from gecx.types import Content, Part
     llm_request.contents.append(Content(role="user", parts=[Part.from_text(text=facts_text)]))
     return None
