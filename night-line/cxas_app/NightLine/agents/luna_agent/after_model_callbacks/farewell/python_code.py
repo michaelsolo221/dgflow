@@ -22,14 +22,10 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
             break
 
     # Check if the model response contains an end_session function call
-    has_end_session = False
-    for part in llm_response.content.parts if hasattr(llm_response, "content") else []:
-        if hasattr(part, "function_call") and part.function_call:
-            if part.function_call.name == "end_session":
-                has_end_session = True
-                break
-
-    if not has_end_session:
+    if not any(
+        hasattr(part, "function_call") and part.function_call and part.function_call.name == "end_session"
+        for part in (llm_response.content.parts if hasattr(llm_response, "content") else [])
+    ):
         return None
 
     # Inject farewell before end_session
