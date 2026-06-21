@@ -1,7 +1,26 @@
 node_modules/
 dist/
+build/
 .env
 *.log
 night-line-agent/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# macOS
+.DS_Store
+
+# CXAS generated reports
+eval-reports/
