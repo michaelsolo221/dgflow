@@ -6,7 +6,6 @@ Only the persona-specific strings differ across Luna, Viktor, and Sol.
 from __future__ import annotations
 
 import json
-from typing import Optional
 
 
 # -- Persona data (the only per-persona differences) ---------------------
@@ -135,6 +134,9 @@ def handle_silence_and_inject_facts(callback_context, llm_request, persona_id: s
             elif silence_count >= 3:
                 return Content(role="model", parts=[Part.from_text(text=pd["silence_3"])])
             break
+
+    # ---- User spoke: reset silence counter ----
+    state["_silence_count"] = "0"
 
     # ---- Fact injection ----
     caller_profile_raw = state.get("caller_profile", "{}")

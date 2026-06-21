@@ -4,7 +4,7 @@
      Purpose: Welcome callers and route them to the right late-night companion.
      Modality: Audio (voice) — model: gemini-3.1-flash-live
      Tools: end_session only. No memory / state tools.
-     Child agents: empty (persona routing completed in Slice 7).
+     Child agents: ["luna_agent", "viktor_agent", "sol_agent"]
 
      Design decisions:
      - Single subtask (Welcome_And_Routing) — root agent has one job.
