@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-INSTRUCTION = Path("night-line/cxas_app/Night_Line/agents/Root_Agent/instruction.txt")
+INSTRUCTION = Path("night-line/cxas_app/NightLine/agents/root_agent/instruction.txt")
 
 
 def test_route_step_calls_end_session():
