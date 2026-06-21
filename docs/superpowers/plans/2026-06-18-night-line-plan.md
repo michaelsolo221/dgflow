@@ -55,8 +55,9 @@ night-line/
     └── orchestrator.test.ts  # Integration test (webhook simulation)
 ```
 
----
-```
+______________________________________________________________________
+
+````
 
 
 ### Task 0: GCP Prerequisites
@@ -67,7 +68,8 @@ night-line/
 
 ```bash
 gcloud projects describe <PROJECT_ID>
-```
+````
+
 Expected: project exists, billing enabled.
 
 - [ ] **Step 2: Enable required APIs**
@@ -86,10 +88,13 @@ gcloud services enable \
 ```bash
 gcloud auth application-default login
 ```
+
 Expected: credential file written. Verify:
+
 ```bash
 gcloud auth application-default print-access-token | head -c 20
 ```
+
 Should print a token prefix (not empty, not an error).
 
 - [ ] **Step 4: Grant IAM roles to your user account**
@@ -112,7 +117,9 @@ gcloud emulators firestore start --host-port=localhost:8080 &
 sleep 2
 curl http://localhost:8080
 ```
+
 Expected: emulator responds (may return empty or JSON). Kill the process after verification:
+
 ```bash
 kill %1
 ```
@@ -122,6 +129,7 @@ kill %1
 ```bash
 gcloud firestore databases create --location=nam5 --type=firestore-native
 ```
+
 (Skip if Firestore already exists in the project.)
 
 - [ ] **Step 7: Commit**
@@ -130,11 +138,12 @@ gcloud firestore databases create --location=nam5 --type=firestore-native
 cd ~/repos/dgflow && git add -A && git commit -m "docs: GCP prerequisites for Night Line"
 ```
 
----
+______________________________________________________________________
 
 ### Task 1: Project Scaffold, Types, and Config
 
 **Files:**
+
 - Create: `src/types.ts`
 - Create: `src/config.ts`
 - Create: `src/health.ts`
@@ -143,6 +152,7 @@ cd ~/repos/dgflow && git add -A && git commit -m "docs: GCP prerequisites for Ni
 - Create: `.env.example`
 
 **Interfaces:**
+
 - Produces: `types.ts` — `Persona`, `Caller`, `Turn`, `PersonaRelationship`, `WebhookRequest`, `WebhookResponse`, `Config`
 
 - [ ] **Step 1: Create package.json**
@@ -336,6 +346,7 @@ GEMINI_TIMEOUT_MS=25000
 ```bash
 cd ~/repos/dgflow && npm install && npx tsc --noEmit
 ```
+
 Expected: No errors.
 
 - [ ] **Step 8: Commit**
@@ -344,19 +355,24 @@ Expected: No errors.
 cd ~/repos/dgflow && git add -A && git commit -m "feat: project scaffold with types, config, and health check"
 ```
 
----
+______________________________________________________________________
 
 ### Task 2: Persona Definitions and Content Guard
 
 **Files:**
+
 - Create: `firestore/personas.json`
 - Create: `src/personas.ts`
 - Create: `tests/persona.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Persona` from `types.ts`
+
 - Produces: `loadPersona(db, personaId) → Promise<Persona>`
+
 - Produces: `buildSystemPrompt(persona, facts) → string`
+
 - Produces: `checkContentGuard(persona, text) → string | null`
 
 - [ ] **Step 1: Create persona seed data**
@@ -476,6 +492,7 @@ describe("checkContentGuard", () => {
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts
 ```
+
 Expected: FAIL — module not found.
 
 - [ ] **Step 4: Implement personas.ts**
@@ -519,6 +536,7 @@ export function checkContentGuard(persona: Persona, text: string): string | null
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/persona.test.ts -v
 ```
+
 Expected: 5 tests PASS.
 
 - [ ] **Step 6: Commit**
@@ -527,16 +545,18 @@ Expected: 5 tests PASS.
 cd ~/repos/dgflow && git add -A && git commit -m "feat: persona definitions, content guard, and prompt builder"
 ```
 
----
+______________________________________________________________________
 
 ### Task 3: Gemini Client with Real-Auth Verification
 
 **Files:**
+
 - Create: `src/gemini.ts`
 - Create: `tests/gemini.test.ts` (unit with mock)
 - Create: `tests/gemini-auth.test.ts` (real-auth smoke test)
 
 **Interfaces:**
+
 - Consumes: `Config` from `types.ts`
 - Produces: `generateResponse(config, systemPrompt, history, userText) → Promise<string>`
 
@@ -635,6 +655,7 @@ describe("generateResponse (real auth)", () => {
 ```bash
 cd ~/repos/dgflow && npx jest tests/gemini.test.ts
 ```
+
 Expected: FAIL — module not found.
 
 - [ ] **Step 4: Implement gemini.ts**
@@ -687,6 +708,7 @@ export async function generateResponse(
 ```bash
 cd ~/repos/dgflow && npx jest tests/gemini.test.ts -v
 ```
+
 Expected: 2 tests PASS.
 
 - [ ] **Step 6: Run real-auth smoke test**
@@ -694,6 +716,7 @@ Expected: 2 tests PASS.
 ```bash
 cd ~/repos/dgflow && GOOGLE_CLOUD_PROJECT=<your-project> npx jest tests/gemini-auth.test.ts -v
 ```
+
 Expected: "Gemini response:" printed with actual LLM output. If this fails with 403/401, fix ADC or IAM before proceeding.
 
 - [ ] **Step 7: Commit**
@@ -702,15 +725,18 @@ Expected: "Gemini response:" printed with actual LLM output. If this fails with 
 cd ~/repos/dgflow && git add -A && git commit -m "feat: Gemini client with real-auth smoke test"
 ```
 
----
+______________________________________________________________________
 
 ### Task 3.5: WALKING SKELETON — First Phone Call
 
 **This is the critical vertical slice.** Deploy a minimal orchestrator that answers calls with a hardcoded Luna greeting, wire it to Dialogflow CX, and actually dial the number. After this task, you have a working phone pipeline with real Gemini behind it.
 
 **Files:**
+
 - Create: `src/index.ts` (minimal Express app)
+
 - Create: `Dockerfile`
+
 - Create: `.dockerignore`
 
 - [ ] **Step 1: Create minimal index.ts (walking skeleton)**
@@ -867,19 +893,21 @@ curl -s -X POST $URL/converse \
 - [ ] **Step 7: Set up Dialogflow CX with webhook pointing at Cloud Run**
 
 Follow `cx/README.md` for the full setup. For the walking skeleton, create:
+
 1. Agent named "Night Line"
-2. Phone Gateway: claim US number (Essentials Edition)
-3. Webhook: URL = `$URL/converse`, auth = ID Token, timeout = 30s
-4. Start Page: static TTS welcome + DTMF routes
-5. Luna Page: entry sets `persona = "luna"`, webhook tag `greeting`, transition to Converse
-6. Converse Page: `sys.no-match-default` → webhook tag `converse`
+1. Phone Gateway: claim US number (Essentials Edition)
+1. Webhook: URL = `$URL/converse`, auth = ID Token, timeout = 30s
+1. Start Page: static TTS welcome + DTMF routes
+1. Luna Page: entry sets `persona = "luna"`, webhook tag `greeting`, transition to Converse
+1. Converse Page: `sys.no-match-default` → webhook tag `converse`
 
 - [ ] **Step 8: Dial the number and speak**
 
 Dial the phone number claimed in Step 7. You should hear:
+
 1. "Welcome to the Night Line…" (static)
-2. Press 1 → "Hey you. Didn't think anyone would actually call." (from Firestore/greeting tag)
-3. Speak → Luna responds in character via Gemini
+1. Press 1 → "Hey you. Didn't think anyone would actually call." (from Firestore/greeting tag)
+1. Speak → Luna responds in character via Gemini
 
 **This is the milestone.** Everything after this layers on top of a working pipeline.
 
@@ -889,15 +917,17 @@ Dial the phone number claimed in Step 7. You should hear:
 cd ~/repos/dgflow && git add -A && git commit -m "feat: walking skeleton — first phone call with real Gemini"
 ```
 
----
+______________________________________________________________________
 
 ### Task 4: Memory Layer — Firestore CRUD
 
 **Files:**
+
 - Create: `src/memory.ts`
 - Create: `tests/memory.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Caller`, `Turn`, `PersonaRelationship` from `types.ts`
 - Produces: `getOrCreateCaller(db, phone) → Promise<Caller>`
 - Produces: `appendTurn(db, phone, personaId, role, text) → Promise<void>`
@@ -976,6 +1006,7 @@ describe("updateFacts", () => {
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts
 ```
+
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement memory.ts**
@@ -1082,6 +1113,7 @@ export async function updateFacts(
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/memory.test.ts -v
 ```
+
 Expected: 4 tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -1090,16 +1122,19 @@ Expected: 4 tests PASS.
 cd ~/repos/dgflow && git add -A && git commit -m "feat: Firestore memory layer — caller profiles and turn logs"
 ```
 
----
+______________________________________________________________________
 
 ### Task 5: Fact Extraction
 
 **Files:**
+
 - Create: `src/facts.ts`
 - Create: `tests/facts.test.ts`
 
 **Interfaces:**
+
 - Consumes: `generateResponse` from `gemini.ts`, `Config` from `types.ts`
+
 - Produces: `extractFacts(config, lastResponse, callerUtterance) → Promise<Record<string,string>>`
 
 - [ ] **Step 1: Write failing test**
@@ -1136,11 +1171,12 @@ describe("extractFacts", () => {
 ```bash
 cd ~/repos/dgflow && npx jest tests/facts.test.ts
 ```
+
 Expected: FAIL.
 
 - [ ] **Step 3: Implement facts.ts**
 
-```typescript
+````typescript
 // src/facts.ts
 import { generateResponse } from "./gemini";
 import type { Config } from "./types";
@@ -1169,13 +1205,14 @@ export async function extractFacts(
     return {};
   }
 }
-```
+````
 
 - [ ] **Step 4: Run tests — expect PASS**
 
 ```bash
 cd ~/repos/dgflow && npx jest tests/facts.test.ts -v
 ```
+
 Expected: 2 tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -1184,15 +1221,17 @@ Expected: 2 tests PASS.
 cd ~/repos/dgflow && git add -A && git commit -m "feat: fact extraction from LLM responses"
 ```
 
----
+______________________________________________________________________
 
 ### Task 6: Full Orchestrator — Memory, Content Guard, Error Handling
 
 **Files:**
+
 - Modify: `src/index.ts` — Replace walking skeleton with full orchestrator logic
 - Create: `tests/orchestrator.test.ts`
 
 **Interfaces:**
+
 - Consumes: All previous modules (personas, memory, gemini, facts, types)
 - Produces: Express app with `POST /converse`, `GET /health`
 
@@ -1342,6 +1381,7 @@ describe("POST /converse", () => {
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts
 ```
+
 Expected: FAIL — `createApp` not found.
 
 - [ ] **Step 3: Create orchestrator.ts (logic layer)**
@@ -1472,6 +1512,7 @@ app.listen(config.port, () => {
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest tests/orchestrator.test.ts -v
 ```
+
 Expected: 6 tests PASS.
 
 - [ ] **Step 6: Commit**
@@ -1480,12 +1521,14 @@ Expected: 6 tests PASS.
 cd ~/repos/dgflow && git add -A && git commit -m "feat: full orchestrator with memory, content guard, error handling"
 ```
 
----
+______________________________________________________________________
 
 ### Task 7: Multiple Personas — Firestore Seed + DTMF Wiring
 
 **Files:**
+
 - Create: `firestore/seed.ts`
+
 - Modify: `cx/README.md` — document multi-persona DTMF routes
 
 - [ ] **Step 1: Write seed script**
@@ -1534,13 +1577,17 @@ seed().catch((err) => {
 ```bash
 cd ~/repos/dgflow && GOOGLE_CLOUD_PROJECT=<project> npx ts-node firestore/seed.ts
 ```
+
 Expected: "Seeded: luna (Luna) — voice: en-US-Studio-O", etc. No voice warnings.
 
 - [ ] **Step 3: Add Viktor and Sol routes to CX agent**
 
 In the Dialogflow CX console, add:
+
 - Viktor Page: entry `persona = "viktor"`, webhook `greeting`, transition → Converse
+
 - Sol Page: entry `persona = "sol"`, webhook `greeting`, transition → Converse
+
 - Start Page DTMF routes: 2 → Viktor, 3 → Sol
 
 - [ ] **Step 4: Test multi-persona**
@@ -1575,12 +1622,14 @@ Dial the number. Press 1, 2, 3 — each should route to correct persona greeting
 cd ~/repos/dgflow && git add -A && git commit -m "feat: multi-persona seed script and DTMF wiring"
 ```
 
----
+______________________________________________________________________
 
 ### Task 8: Landing Page
 
 **Files:**
+
 - Create: `landing/index.html`
+
 - Create: `landing/style.css`
 
 - [ ] **Step 1: Create landing page**
@@ -1660,11 +1709,12 @@ echo "https://storage.googleapis.com/<PROJECT>-night-line-landing/index.html"
 cd ~/repos/dgflow && git add -A && git commit -m "feat: retro landing page"
 ```
 
----
+______________________________________________________________________
 
 ### Task 9: Production Deployment — Final Wiring
 
 **Files:**
+
 - Modify: `cx/README.md` — final confirmations
 
 - [ ] **Step 1: Redeploy with min-instances and cpu-boost**
@@ -1690,9 +1740,13 @@ curl -s $URL/health
 - [ ] **Step 3: Finalize Dialogflow CX configuration**
 
 In the CX console, confirm:
+
 - Webhook timeout: 30 seconds
+
 - Partial responses: enabled on Converse Page no-match handler
+
 - Phone Gateway: Essentials Edition, US number live
+
 - Conversation Profile: `phone_call` speech model
 
 - [ ] **Step 4: Run full test suite**
@@ -1700,17 +1754,25 @@ In the CX console, confirm:
 ```bash
 cd ~/repos/dgflow && FIRESTORE_EMULATOR_HOST=localhost:8080 npx jest --forceExit --verbose
 ```
+
 Expected: All tests PASS.
 
 - [ ] **Step 5: End-to-end phone call**
 
 Dial the number. Verify:
+
 - DTMF menu works (1/2/3)
+
 - Each persona greets in character
+
 - Conversation flows naturally (Gemini responding)
+
 - "politics" → deflection
+
 - "goodbye" → call ends
+
 - Silence 2× → call ends
+
 - Call back → persona remembers facts if extracted
 
 - [ ] **Step 6: Commit**

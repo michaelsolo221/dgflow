@@ -1,11 +1,10 @@
 {
-  "gcp_project_id": "YOUR_PROJECT_ID",
+  "gcp_project_id": "superb-tendril-409615",
   "location": "us",
   "app_name": "Night Line",
-  "deployed_app_id": null,
+  "deployed_app_id": "8093c2b8-e21e-4435-a5e4-dd454657d183",
   "app_dir": "cxas_app/",
-  "model": "gemini-3.1-flash-live",
   "modality": "audio",
   "default_channel": "audio",
-  "gcs_bucket": "gs://YOUR_PROJECT_ID-night-line-evals"
+  "gcs_bucket": "gs://superb-tendril-409615-night-line-evals"
 }

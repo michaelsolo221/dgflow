@@ -284,11 +284,11 @@ Personas are data, not code. Adding a new persona = Firestore write + CX flow DT
 | Step | Target |
 |---|---|
 | STT (Dialogflow) | streaming, hidden |
-| Webhook network (CX → Cloud Run) | <50ms (same region) |
-| Firestore reads (parallel) | <100ms |
+| Webhook network (CX → Cloud Run) | \<50ms (same region) |
+| Firestore reads (parallel) | \<100ms |
 | Gemini 3.1 Flash-Lite | ~600ms TTFB |
-| Firestore writes | <50ms |
-| Webhook network (Cloud Run → CX) | <50ms |
+| Firestore writes | \<50ms |
+| Webhook network (Cloud Run → CX) | \<50ms |
 | TTS (Dialogflow) | streaming, hidden |
 | **Total call turn** | **~1s perceived** (partial responses hide gap) |
 
@@ -372,17 +372,20 @@ Agent definition stored as JSON package format in [`night-line-agent`](https://g
 ## Testing Strategy
 
 ### Unit tests (Jest)
+
 - Persona loading, content guard, system prompt building
 - Gemini client (mocked) — response parsing, error handling
 - Memory CRUD (mocked Firestore) — create/read caller, append turns, update facts
 - Orchestrator integration — webhook simulation for greeting, converse, error paths
 
 ### Smoke tests (curl)
+
 - `GET /healthz` → 200 `{"status":"ok"}`
 - `POST /converse` with tag `greeting` → Luna's greeting text
 - `POST /converse` with tag `converse` and text → non-empty Gemini response
 
 ### Manual test (dial the number)
+
 - Welcome → press 1 → Luna greeting → speak → response → goodbye → hang up
 - Verify Firestore `callers/<phone>` has turn history
 
