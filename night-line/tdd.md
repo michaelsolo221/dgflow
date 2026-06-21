@@ -174,11 +174,11 @@ The key question: **Is the behavior deterministic for this flow?**
    - `pre-agent-push.sh` — drift detection: pulls platform state, diffs against local, blocks push if platform has diverged
    - `post-agent-update.sh` — fires after `update_agent` calls, auto-pulls latest agent state, runs `sync-callbacks.py`
 
-1. **Environment setup:** Run `setup.sh` from `.agents/skills/cxas-agent-foundry/scripts/setup.sh` — installs Python 3.10+ deps, `uv`, `cxas-scrapi`. All CXAS commands use `uv run cxas`, not bare `cxas`.
+1. **Environment setup:** `uv venv .venv && source .venv/bin/activate && uv sync --extra dev` — installs cxas-scrapi from PyPI. Use bare `cxas` (not `uv run cxas`) in the activated venv. See `CONTRIBUTING.md`.
 
-1. **Create app on platform:** `uv run cxas push --display-name "Night Line"` — first push auto-creates the app. Sets `deployed_app_id` in `gecx-config.json`.
+1. **Create app on platform:** `cxas push --display-name "Night Line"` — first push auto-creates the app. Sets `deployed_app_id` in `gecx-config.json`.
 
-1. **Pull app locally:** `uv run cxas pull projects/<id>/locations/us/apps/<app_id> --target-dir night-line/cxas_app/`
+1. **Pull app locally:** `cxas pull projects/<id>/locations/us/apps/<app_id> --target-dir night-line/cxas_app/`
    a. Verify a subdirectory exists under `night-line/cxas_app/` — the SDK creates one named after the app; exact normalization depends on the platform (e.g., `Night Line`, `NightLine`).
 
 1. **Update `gecx-config.json`:** Set `deployed_app_id` to short app name (not full resource path). Verify `gcs_bucket` is set — required for audio agents.
@@ -203,11 +203,11 @@ The key question: **Is the behavior deterministic for this flow?**
 
 1. **Write callback test files** (`before_agent_callback` turn guard + init, `before_model_callback` fact injection + silence, `after_model_callback` farewell). Use pytest via SCRAPI's `test_all_callbacks_in_app_dir`.
 
-1. **Run `uv run cxas llm-lint`** — AI semantic lint on instruction files (pre-eval gate, catches vague/untestable instructions). Must pass before writing evals.
+1. **Run `cxas llm-lint`** — AI semantic lint on instruction files (pre-eval gate, catches vague/untestable instructions). Must pass before writing evals.
 
-1. **Run `uv run cxas lint`** — structural lint (pre-push hook auto-runs).
+1. **Run `cxas lint`** — structural lint (pre-push hook auto-runs).
 
-1. **Run `python gate-check.py`** — all 6 gates must pass before evals.
+1. **Run `python scripts/gate-check.py`** — must pass before evals.
 
 1. **Run `sync-callbacks.py`** — sync callbacks from platform to local test dirs.
 

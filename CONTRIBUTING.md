@@ -4,28 +4,30 @@
 
 ### Prerequisites
 
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) (Astral's package manager)
+- Python 3.12
+- [uv](https://docs.astral.sh/uv/) (Astral's package manager — `curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install)
 
-### GCP Infrastructure Setup
+### GCP Setup
 
-Before running any CXAS commands, provision the required GCP resources:
+You need access to the shared GCP project (`superb-tendril-409615`) or your own project. If using your own, replace `superb-tendril-409615` with your project ID throughout.
 
 ```bash
-# 1. Enable required APIs
-gcloud services enable dialogflow.googleapis.com aiplatform.googleapis.com firestore.googleapis.com --project=superb-tendril-409615
-
-# 2. Authenticate with Application Default Credentials
+# Authenticate
 gcloud auth application-default login
-# Verify:
-gcloud auth application-default print-access-token
+gcloud auth application-default print-access-token  # verify
 
-# 3. Create Firestore database in Native mode (nam5)
-gcloud firestore databases create --database=night-line --location=nam5 --type=firestore-native --project=superb-tendril-409615
+# Enable required APIs (only needed once per project)
+gcloud services enable dialogflow.googleapis.com aiplatform.googleapis.com firestore.googleapis.com \
+  --project=superb-tendril-409615
 
-# 4. Create GCS bucket for audio eval recordings
-gcloud storage buckets create gs://superb-tendril-409615-night-line-evals --location=us --project=superb-tendril-409615
+# Create Firestore database (only needed once per project)
+gcloud firestore databases create --database=night-line --location=nam5 \
+  --type=firestore-native --project=superb-tendril-409615
+
+# Create GCS bucket for eval recordings (only needed once per project)
+gcloud storage buckets create gs://superb-tendril-409615-night-line-evals \
+  --location=us --project=superb-tendril-409615
 ```
 
 ### Clone and Setup
@@ -33,38 +35,22 @@ gcloud storage buckets create gs://superb-tendril-409615-night-line-evals --loca
 ```bash
 git clone https://github.com/michaelsolo221/dgflow.git
 cd dgflow
-```
 
-### Project Setup
-
-Run the setup script to create the virtual environment and install core dependencies:
-
-```bash
-.agents/skills/cxas-agent-foundry/scripts/setup.sh
-```
-
-This creates `.venv/` with `cxas-scrapi` installed. Activate the environment:
-
-```bash
+# Create venv and install all dependencies (cxas-scrapi is on public PyPI)
+uv venv .venv
 source .venv/bin/activate
-```
-
-Then create the project files:
-
-```bash
-python .agents/skills/cxas-agent-foundry/scripts/setup-project.py \
-  --project-id superb-tendril-409615 \
-  --name night-line \
-  --modality audio
-```
-
-This creates `night-line/gecx-config.json` and `.active-project`. Replace `superb-tendril-409615` with your GCP project ID.
-
-Finally, install development dependencies:
-
-```bash
 uv sync --extra dev
 ```
+
+Verify:
+
+```bash
+cxas --version
+```
+
+### gecx-config.json
+
+`night-line/gecx-config.json` is pre-populated for the shared project. If using your own GCP project, update `gcp_project_id`, `gcs_bucket`, and `deployed_app_id` (the last one is set automatically on first `cxas push`).
 
 ### Pre-commit Hooks
 
@@ -72,48 +58,49 @@ uv sync --extra dev
 pre-commit install && pre-commit install --hook-type commit-msg
 ```
 
-### Verify
+## Running Tests
+
+Tests in `tests/` are unit tests that run **offline** — no GCP credentials needed:
 
 ```bash
-source .venv/bin/activate && cxas --version
+uv run pytest tests/ -v
 ```
+
+Tool, callback, and eval tests (in `night-line/`) require GCP credentials (ADC set up above).
 
 ## Pre-commit Hooks
 
 | Hook | What it does |
 |------|-------------|
 | `ruff` | Python linting and formatting — auto-fixes on commit |
-| `mdformat` | Formats `SKILL.md` files |
+| `mdformat` | Formats markdown files |
 | `pytest` | Runs tests on modified test files only |
-| `brand-check-code` | Gemini-powered check on code files — blocks non-Google brand names |
-| `brand-check-msg` | Same check on commit messages |
+| `brand-check-code` | Gemini-powered check on code files — requires ADC credentials |
+| `brand-check-msg` | Same check on commit messages — requires ADC credentials |
 
-## Brand Check Bypass
-
-The brand-check hooks use Gemini to verify code doesn't reference non-Google brand names.
-When you legitimately need to reference third-party services (e.g., in tests or docs),
-bypass the check with:
+The brand-check hooks use Gemini via Application Default Credentials. Ensure `gcloud auth application-default login` has been run. To bypass when legitimately referencing third-party names:
 
 ```bash
 BRAND_CHECK_SKIP=1 git commit -m "your message"
 ```
 
-This bypass is intentional — use it when the hook blocks legitimate references.
-Do **NOT** use it to bypass checks on actual brand name violations.
+Do **not** use this to bypass actual brand name violations.
 
 ## CI Checks
 
 - **Ruff** — lint and format check
-- **Build** — `uv build` + `twine check`
-- **Tests** — `pytest` on Python 3.10
+- **Tests** — `pytest` on Python 3.12
 - **Semantic PR titles** — conventional commit format:
   `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 ## Project Structure
 
 ```
-night-line/        Main project source
-cxas_app/          Agent configuration files
-evals/             Evaluation test suites
+night-line/        Main CXAS agent project
+  cxas_app/        Agent configuration files
+  evals/           Evaluation test suites
+tests/             Offline unit tests
+docs/              Conventions, ADRs, agent skill docs
+scripts/           Utility scripts (gate-check, seed-personas)
 .agents/skills/    CXAS skill definitions
 ```
