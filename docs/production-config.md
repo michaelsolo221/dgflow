@@ -2,7 +2,7 @@
 
 ## speakingRate
 
-`speringRate` is configured in `app.json` under `audioProcessingConfig.synthesizeSpeechConfigs["en-US"].speakingRate`. Current value: `1.0` (normal speed).
+`speakingRate` is configured in `app.json` under `audioProcessingConfig.synthesizeSpeechConfigs["en-US"].speakingRate`. Current value: `1.0` (normal speed).
 
 Speaking rate is a platform-level setting, NOT a per-persona instruction. Persona-level pacing hints (e.g. "speak slowly") in instruction.txt are unreliable on the live model. Adjust `speakingRate` here for global pacing changes.
 
