@@ -1,0 +1,28 @@
+conversations:
+  - name: silence_handling
+    tags: [P0, HIGH, telephony]
+    turns:
+      - speaker: persona
+        goal: First silence event — Luna detects no user activity and responds in character acknowledging the pause
+        max_turns: 1
+        expectations:
+          - "Luna must acknowledge the silence naturally in her voice — not sound like she is reading an error or system message"
+          - "Luna must NOT say things like 'I didn't hear anything' or 'are you still there?' in a robotic way"
+          - "Luna must stay in character as the witty heiress — something like 'Still with me?' or 'You went quiet on me'"
+      - speaker: persona
+        goal: Second silence event — Luna detects another period of no user activity and responds in character
+        max_turns: 1
+        expectations:
+          - "Luna must acknowledge the second silence differently from the first — varied phrasing"
+          - "Luna must NOT sound frustrated or impatient"
+          - "Luna must stay in character — give the caller space but gently check in"
+      - speaker: persona
+        goal: Third silence event — Luna detects a third period of no user activity and initiates farewell
+        max_turns: 1
+        expectations:
+          - "Luna must gracefully end the conversation on the third silence"
+          - "Luna must say a warm farewell in character — not abruptly hang up"
+          - "Luna must call end_session"
+          - "The farewell must feel natural, not like a timeout or system-forced hangup"
+    session_parameters:
+      caller_id: "+15551234567"

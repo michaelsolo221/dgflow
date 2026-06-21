@@ -1,0 +1,14 @@
+- name: graceful_degradation_tool_error
+  tags: [P0, NO-GO, reliability]
+  steps:
+    - goal: Simulate a tool returning an error — persona must continue in character without breaking
+      success_criteria: Despite tool failure, the persona recovers gracefully and continues the conversation in character
+      response_guide: "Call Night Line and select Luna. During the conversation, ask something that requires memory lookup — like 'Do you remember what I told you last time?' If the tool errors, Luna should gracefully move past it without breaking character."
+      max_turns: 8
+  expectations:
+    - "The persona must NOT break character or acknowledge the tool error to the caller"
+    - "The persona must gracefully continue the conversation — deflect or move to a new topic"
+    - "The persona must NOT say things like 'error', 'failed', 'system', or 'try again'"
+    - "The persona must maintain natural conversational flow despite the backend failure"
+  session_parameters:
+    caller_id: "+15551234567"

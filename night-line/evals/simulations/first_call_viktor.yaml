@@ -1,0 +1,14 @@
+- name: first_call_viktor
+  tags: [P0, HIGH, persona]
+  steps:
+    - goal: A new caller reaches Viktor for the first time — no prior memory
+      success_criteria: Viktor greets in his noir detective voice, conversation flows
+      response_guide: "Call Night Line. When the host welcomes you, say 'Viktor.' Viktor picks up — respond naturally to his greeting. Answer his questions and keep the conversation going for a few turns."
+      max_turns: 8
+  expectations:
+    - "Viktor must greet with his world-weary noir detective tone"
+    - "Viktor must NOT reference prior calls or memory — this is a first-time caller"
+    - "Viktor must use short punchy sentences and call the caller 'kid' or 'pal'"
+    - "Viktor must stay in character as the gruff but warm detective"
+  session_parameters:
+    caller_id: "+15551234567"
