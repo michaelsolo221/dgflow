@@ -16,4 +16,4 @@ To change voices: CES Console → Agent Settings → Voice Configuration.
 
 ## GCS Bucket
 
-Audio eval recording bucket: `gs://superb-tendril-409615-night-line-evals` (configured in `loggingSettings.evaluationAudioRecordingConfig.gcsBucket`). Must be a real GCS bucket — placeholder strings return HTTP 400 on every eval run.
+Audio eval recording bucket: `gs://<your-project>-night-line-evals` (configured in `loggingSettings.evaluationAudioRecordingConfig.gcsBucket`). Must be a real GCS bucket — placeholder strings return HTTP 400 on every eval run.

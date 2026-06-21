@@ -1,3 +1,5 @@
+# ponytail: sim depends on live tool error — not deterministic; re-evaluate with mock tool stub if this becomes a NO-GO gate
+
 - name: graceful_degradation_tool_error
   tags: [P0, NO-GO, reliability]
   steps:
