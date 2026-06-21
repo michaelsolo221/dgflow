@@ -3,3 +3,5 @@ dist/
 .env
 *.log
 night-line-agent/
+__pycache__/
+*.pyc

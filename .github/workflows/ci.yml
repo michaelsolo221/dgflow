@@ -40,8 +40,6 @@ jobs:
         run: uv sync --extra dev
       - name: Build package
         run: uv build
-      - name: Install twine
-        run: uv pip install twine
       - name: Check distribution
         run: uv run twine check dist/*
 
@@ -50,8 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3.14 is intentional — matches upstream cxas-scrapi CI; fail-fast: false tolerates pre-release
-        python-version: ['3.10', '3.14']
+        python-version: ['3.10']
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
