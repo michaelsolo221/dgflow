@@ -97,7 +97,7 @@
 
                 "Welcome to Night Line — your late-night companion service.
                 I've got three friends you might want to talk to: there's Luna,
-                the heiress with a secret. Viktor, a detective who's seen it all.
+                the heiress with a secret. Viktor, a detective who's seen too much.
                 And Sol, an astronaut broadcasting from deep space.
                 Who sounds good to you?"
 
@@ -141,6 +141,8 @@
                 - SECOND consecutive unclear response: "No worries — I'll connect
                   you with Luna. She's great company." Then proceed to Route
                   (default to Luna).
+                - THIRD or any further unclear response: proceed to Route
+                  immediately, default to Luna, no additional message.
             </action>
         </step>
 

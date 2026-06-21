@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-INSTRUCTION = Path("night-line/cxas_app/NightLine/agents/root_agent/instruction.txt")
+INSTRUCTION = Path("night-line/cxas_app/Night_Line/agents/Root_Agent/instruction.txt")
 
 
 def test_route_step_calls_end_session():
@@ -18,3 +18,26 @@ def test_no_why_comments_in_prompt():
     """Developer rationale comments waste ~250 tokens per live call; belongs in ADRs."""
     text = INSTRUCTION.read_text()
     assert "<!-- WHY:" not in text
+
+
+def test_clarify_step_has_third_attempt_backstop():
+    """Without a hard third-attempt rule the LLM can loop indefinitely on noisy calls."""
+    text = INSTRUCTION.read_text()
+    clarify_start = text.index('<step name="Clarify">')
+    clarify_end = text.index("</step>", clarify_start)
+    clarify_block = text[clarify_start:clarify_end].upper()
+    assert "THIRD" in clarify_block
+
+
+def test_viktor_tagline_matches_personas_json():
+    """Taglines in instruction.txt must match personas.json — two sources of truth diverge."""
+    import json
+
+    personas = json.loads(Path("firestore/personas.json").read_text())
+    viktor_tagline_fragment = personas["viktor"]["tagline"].split()[-2]  # "too"
+    text = INSTRUCTION.read_text()
+    welcome_start = text.index('<step name="Welcome">')
+    welcome_end = text.index("</step>", welcome_start)
+    welcome_block = text[welcome_start:welcome_end]
+    assert "seen it all" not in welcome_block
+    assert viktor_tagline_fragment in welcome_block

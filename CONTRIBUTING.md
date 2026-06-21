@@ -14,7 +14,7 @@ Before running any CXAS commands, provision the required GCP resources:
 
 ```bash
 # 1. Enable required APIs
-gcloud services enable dialogflow.googleapis.com aiplatform.googleapis.com firestore.googleapis.com --project=YOUR_PROJECT_ID
+gcloud services enable dialogflow.googleapis.com aiplatform.googleapis.com firestore.googleapis.com --project=superb-tendril-409615
 
 # 2. Authenticate with Application Default Credentials
 gcloud auth application-default login
@@ -22,13 +22,11 @@ gcloud auth application-default login
 gcloud auth application-default print-access-token
 
 # 3. Create Firestore database in Native mode (nam5)
-gcloud firestore databases create --database=night-line --location=nam5 --type=firestore-native --project=YOUR_PROJECT_ID
+gcloud firestore databases create --database=night-line --location=nam5 --type=firestore-native --project=superb-tendril-409615
 
 # 4. Create GCS bucket for audio eval recordings
-gcloud storage buckets create gs://YOUR_PROJECT_ID-night-line-evals --location=us --project=YOUR_PROJECT_ID
+gcloud storage buckets create gs://superb-tendril-409615-night-line-evals --location=us --project=superb-tendril-409615
 ```
-
-Replace `YOUR_PROJECT_ID` with your actual GCP project ID.
 
 ### Clone and Setup
 
@@ -55,17 +53,17 @@ Then create the project files:
 
 ```bash
 python .agents/skills/cxas-agent-foundry/scripts/setup-project.py \
-  --project-id YOUR_PROJECT_ID \
+  --project-id superb-tendril-409615 \
   --name night-line \
   --modality audio
 ```
 
-This creates `night-line/gecx-config.json` and `.active-project`. Replace `YOUR_PROJECT_ID` with your GCP project ID.
+This creates `night-line/gecx-config.json` and `.active-project`. Replace `superb-tendril-409615` with your GCP project ID.
 
 Finally, install development dependencies:
 
 ```bash
-uv sync --dev
+uv sync --extra dev
 ```
 
 ### Pre-commit Hooks
@@ -107,7 +105,7 @@ Do **NOT** use it to bypass checks on actual brand name violations.
 
 - **Ruff** — lint and format check
 - **Build** — `uv build` + `twine check`
-- **Tests** — `pytest` on Python 3.10 and 3.14
+- **Tests** — `pytest` on Python 3.10
 - **Semantic PR titles** — conventional commit format:
   `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 

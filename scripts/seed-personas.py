@@ -30,16 +30,16 @@ def main() -> None:
         print(f"Error connecting to Firestore: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    for persona_id, data in personas.items():
-        try:
-            doc_ref = db.collection("personas").document(persona_id)
-            doc_ref.set(data, merge=True)
-            print(f"Seeded: {data.get('display_name', persona_id)}")
-        except Exception as exc:
-            print(f"Error seeding {persona_id}: {exc}", file=sys.stderr)
-            sys.exit(1)
+    try:
+        batch = db.batch()
+        for persona_id, data in personas.items():
+            batch.set(db.collection("personas").document(persona_id), data, merge=True)
+        batch.commit()
+    except Exception as exc:
+        print(f"Error seeding personas: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-    print("Done.")
+    print(f"Seeded {len(personas)} personas.")
 
 
 if __name__ == "__main__":

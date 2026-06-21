@@ -1,10 +1,7 @@
 {
-  "name": "night_line",
+  "name": "8093c2b8-e21e-4435-a5e4-dd454657d183",
   "displayName": "Night Line",
   "description": "AI companion phone service — late-night conversations with persona-driven characters",
-  "modality": "audio",
-  "default_channel": "audio",
-  "rootAgent": "root_agent",
   "tools": [],
   "modelSettings": {
     "model": "gemini-3.1-flash-live"
@@ -26,7 +23,7 @@
   "loggingSettings": {
     "conversationLoggingSettings": {},
     "evaluationAudioRecordingConfig": {
-      "gcsBucket": "gs://YOUR_PROJECT_ID-night-line-evals"
+      "gcsBucket": "gs://superb-tendril-409615-night-line-evals"
     }
   },
   "toolExecutionMode": "PARALLEL",
