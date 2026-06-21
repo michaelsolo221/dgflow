@@ -1,0 +1,87 @@
+variables:
+  caller_id: "+15551234567"
+
+tests:
+  - name: "save_memory: merges fact without overwriting existing facts"
+    description: "save_memory adds a new fact while preserving existing ones"
+    tool: save_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: true
+        data:
+          caller_id: "+15551234567"
+          call_count: 2
+          facts:
+            name: Alice
+            hobby: painting
+          recent_turns: []
+    params:
+      key: favorite_color
+      value: blue
+    expected:
+      output:
+        agent_action: ""
+      firestore_after:
+        facts:
+          name: Alice
+        facts:
+          hobby: painting
+        facts:
+          favorite_color: blue
+
+  - name: "save_memory: updates existing fact"
+    description: "save_memory overwrites a fact when the key already exists"
+    tool: save_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: true
+        data:
+          caller_id: "+15551234567"
+          facts:
+            name: Alice
+          recent_turns: []
+    params:
+      key: name
+      value: Alicia
+    expected:
+      firestore_after:
+        facts:
+          name: Alicia
+
+  - name: "save_memory: new caller creates document with fact"
+    description: "When the caller doesn't exist, save_memory creates the document"
+    tool: save_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: false
+    params:
+      key: name
+      value: Bob
+    expected:
+      output:
+        agent_action: ""
+      firestore_after:
+        facts:
+          name: Bob
+
+  - name: "save_memory: returns agent_action on Firestore error"
+    description: "When Firestore is unavailable, save_memory returns agent_action, never raises"
+    tool: save_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        error: true
+    params:
+      key: name
+      value: Charlie
+    expected:
+      output:
+        agent_action:
+          contains: ["Couldn't save"]

@@ -24,3 +24,4 @@ htmlcov/
 
 # CXAS generated reports
 eval-reports/
+.omipi-state/

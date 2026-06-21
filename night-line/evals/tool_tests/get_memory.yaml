@@ -1,0 +1,56 @@
+variables:
+  caller_id: "+15551234567"
+
+tests:
+  - name: "get_memory: new caller returns empty profile"
+    description: "When a caller has no Firestore document, get_memory returns a default empty profile"
+    tool: get_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: false
+    expected:
+      output:
+        caller_profile:
+          contains: ["caller_id", "call_count", "facts", "recent_turns"]
+      caller_profile_parsed:
+        caller_id: "+15551234567"
+        call_count: 0
+
+  - name: "get_memory: existing caller returns stored profile"
+    description: "When a caller has a Firestore document, get_memory returns the stored data"
+    tool: get_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: true
+        data:
+          caller_id: "+15551234567"
+          call_count: 3
+          facts:
+            name: Alice
+            hobby: painting
+          recent_turns:
+            - role: user
+              text: "Hi Luna"
+            - role: model
+              text: "Hey you"
+    expected:
+      output:
+        caller_profile:
+          contains: ["Alice", "painting", "Hi Luna"]
+
+  - name: "get_memory: returns agent_action on Firestore error"
+    description: "When Firestore is unavailable, get_memory returns agent_action dict, never raises"
+    tool: get_memory
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        error: true
+    expected:
+      output:
+        agent_action:
+          contains: ["Memory is unavailable"]
