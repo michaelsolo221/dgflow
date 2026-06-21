@@ -3,6 +3,7 @@
 :root {
   --bg: #0a0a0f;
   --neon: #ff69b4;
+  --neon-rgb: 255, 105, 180;
   --card-bg: #12121a;
   --text: #c0c0d0;
   --fade: #6a6a7a;
@@ -61,7 +62,7 @@ header h1 {
     0 0 10px var(--neon),
     0 0 30px var(--neon),
     0 0 60px var(--neon),
-    0 0 80px rgba(255, 105, 180, 0.4);
+    0 0 80px rgba(var(--neon-rgb), 0.4);
   letter-spacing: 0.08em;
   animation: flicker 3s infinite alternate;
 }
@@ -103,7 +104,7 @@ header h1 {
 
 .card {
   background: var(--card-bg);
-  border: 1px solid rgba(255, 105, 180, 0.2);
+  border: 1px solid rgba(var(--neon-rgb), 0.2);
   border-radius: 4px;
   padding: 1.5rem;
   flex: 1 1 15rem;
@@ -114,7 +115,7 @@ header h1 {
 
 .card:hover {
   border-color: var(--neon);
-  box-shadow: 0 0 12px rgba(255, 105, 180, 0.3), inset 0 0 12px rgba(255, 105, 180, 0.1);
+  box-shadow: 0 0 12px rgba(var(--neon-rgb), 0.3), inset 0 0 12px rgba(var(--neon-rgb), 0.1);
 }
 
 .card h2 {

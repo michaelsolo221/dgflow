@@ -24,6 +24,14 @@ If creation fails due to org policy constraints (e.g. `publicAccessPrevention` o
 gcloud storage cp --cache-control="max-age=300" landing/index.html landing/style.css gs://<project>-night-line-landing/
 ```
 
+### 2a. Replace placeholder phone number
+
+```bash
+sed -i "s/(XXX) XXX-XXXX/+1 (555) 000-0000/" landing/index.html
+```
+
+Replace `+1 (555) 000-0000` with the real Night Line number before deployment.
+
 ### 3. Make public
 
 ```bash
@@ -44,3 +52,5 @@ Expected:
 HTTP/2 200
 content-type: text/html
 ```
+
+⚠️ **Security:** Keep UBLA enabled in production. Direct GCS public access is acceptable for a static landing page, but for anything beyond that, serve via Cloud CDN, Load Balancer, or Firebase Hosting instead.
