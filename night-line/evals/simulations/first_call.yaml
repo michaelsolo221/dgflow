@@ -1,3 +1,6 @@
+# Single-file multi-entry format is correct for the SCRAPI SimulationEval runner — each list item is a separate test case.
+# The runner iterates over all entries sequentially. No need to split into per-persona files.
+
 - name: first_call_luna
   tags: [P0, HIGH, persona]
   steps:

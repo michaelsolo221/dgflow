@@ -1,3 +1,6 @@
+# NOTE: Luna-specific silence handling golden. Viktor and Sol silence goldens are TBD — each persona
+# has a distinct silence cadence (Viktor: gruff impatience, Sol: poetic drift) requiring separate evals.
+
 conversations:
   - name: silence_handling
     tags: [P0, HIGH, telephony]
