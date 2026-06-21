@@ -10,10 +10,10 @@
 
 # Slice 3: Walking Skeleton — First Phone Call
 
-1. [ ] Create root agent directory: `night-line/cxas_app/NightLine/agents/root_agent/`
-2. [ ] Write `instruction.txt` with CXAS XML tags: role, persona, guidelines, constraints, taskflow
-3. [ ] Write `root_agent.json` with name, displayName, tools: ["end_session"], childAgents: []
-4. [ ] Update `app.json`: rootAgent set to "root_agent"
+1. [x] Create root agent directory: `night-line/cxas_app/NightLine/agents/root_agent/`
+2. [x] Write `instruction.txt` with CXAS XML tags: role, persona, guidelines, constraints, taskflow
+3. [x] Write `root_agent.json` with name, displayName, tools: ["end_session"], childAgents: []
+4. [x] Update `app.json`: rootAgent set to "root_agent"
 5. [ ] (GCP) Run `uv run cxas lint --app-dir night-line/cxas_app/`
 6. [ ] (GCP) Run `uv run cxas llm-lint` on root agent instruction.txt
 7. [ ] (GCP) Push to platform: `uv run cxas push --app-dir night-line/cxas_app/NightLine --to projects/<id>/locations/us/apps/<app_id>`
