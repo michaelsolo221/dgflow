@@ -3,7 +3,7 @@
 import json
 
 
-def save_memory_tool(key, value, callback_context):
+def save_memory(key, value, callback_context):
     """Merge a fact (key/value) into the caller's Firestore facts map."""
     try:
         from google.cloud import firestore

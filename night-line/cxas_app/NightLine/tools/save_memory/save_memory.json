@@ -1,18 +1,9 @@
 {
   "name": "save_memory",
-  "description": "Store a fact about the caller in Firestore. Merges into existing facts without overwriting.",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "key": {
-        "type": "string",
-        "description": "The fact key (e.g. 'favorite_color')"
-      },
-      "value": {
-        "type": "string",
-        "description": "The fact value (e.g. 'blue')"
-      }
-    },
-    "required": ["key", "value"]
+  "displayName": "save_memory",
+  "pythonFunction": {
+    "name": "save_memory",
+    "description": "Store a fact about the caller in Firestore. Merges into existing facts without overwriting.",
+    "pythonCode": "tools/save_memory/python_function/python_code.py"
   }
 }

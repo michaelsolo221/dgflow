@@ -1,18 +1,9 @@
 {
   "name": "save_turn",
-  "description": "Append a conversation turn to the caller's memory in Firestore. Caps history at 20 turns.",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "role": {
-        "type": "string",
-        "description": "Who spoke: 'user' or 'model'"
-      },
-      "text": {
-        "type": "string",
-        "description": "The text of the turn"
-      }
-    },
-    "required": ["role", "text"]
+  "displayName": "save_turn",
+  "pythonFunction": {
+    "name": "save_turn",
+    "description": "Append a conversation turn to the caller's memory in Firestore. Caps history at 20 turns.",
+    "pythonCode": "tools/save_turn/python_function/python_code.py"
   }
 }

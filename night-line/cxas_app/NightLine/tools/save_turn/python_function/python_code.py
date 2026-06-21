@@ -3,7 +3,7 @@
 import json
 
 
-def save_turn_tool(role, text, callback_context):
+def save_turn(role, text, callback_context):
     """Save a turn (role + text) to the caller's Firestore document. Caps at 20 turns."""
     try:
         from google.cloud import firestore

@@ -3,7 +3,7 @@
 import json
 
 
-def get_memory_tool(callback_context):
+def get_memory(callback_context):
     """Read caller profile from Firestore. Returns empty profile on error."""
     try:
         from google.cloud import firestore
