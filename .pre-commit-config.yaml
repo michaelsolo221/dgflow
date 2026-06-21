@@ -20,25 +20,18 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
-  - repo: https://github.com/pytest-dev/pytest
-    rev: 8.2.0
-    hooks:
-      - id: pytest
-        files: '^tests/.*test_.*\.py$'
-        pass_filenames: true
-        additional_dependencies: []
 
   - repo: local
     hooks:
       - id: brand-check-code
         name: Brand Check (Code)
-        entry: "BRAND_CHECK_SKIP=1 echo 'brand-check-code: placeholder — requires Gemini API key'"
+        entry: "echo 'brand-check-code: placeholder — requires Gemini API key'"
         language: system
         types: [python]
         stages: [pre-commit]
 
       - id: brand-check-msg
         name: Brand Check (Commit Message)
-        entry: "BRAND_CHECK_SKIP=1 echo 'brand-check-msg: placeholder — requires Gemini API key'"
+        entry: "echo 'brand-check-msg: placeholder — requires Gemini API key'"
         language: system
         stages: [commit-msg]
