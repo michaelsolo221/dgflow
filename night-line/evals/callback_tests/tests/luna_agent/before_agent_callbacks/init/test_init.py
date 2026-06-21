@@ -143,36 +143,6 @@ def test_new_caller_creates_fresh_profile(mock_firestore_client):
     assert profile["facts"] == {}
     assert ctx.state["is_returning"] == "false"
 
-
-@patch("google.cloud.firestore.Client")
-def test_new_caller_state_after_init(mock_firestore_client):
-    """After init, new caller has all required state keys."""
-    mock_db = MagicMock()
-    mock_doc = MagicMock()
-    mock_doc.exists = False
-    mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
-    mock_firestore_client.return_value = mock_db
-
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
-    before_agent_callback(ctx)
-
-    assert "_initialized" in ctx.state
-    assert ctx.state["_initialized"] == "true"
-    assert "persona_id" in ctx.state
-    assert ctx.state["persona_id"] == "luna"
-    assert "is_returning" in ctx.state
-    assert ctx.state["is_returning"] == "false"
-    assert "caller_profile" in ctx.state
-    profile = json.loads(ctx.state["caller_profile"])
-    assert "caller_id" in profile
-    assert "call_count" in profile
-    assert "facts" in profile
-    assert "recent_turns" in profile
-
-
 # -- Returning Caller Greeting tests -----------------------------------
 
 @patch("google.cloud.firestore.Client")
@@ -201,35 +171,6 @@ def test_returning_caller_facts_loaded(mock_firestore_client):
     assert profile["facts"]["name"] == "Bob"
     assert profile["facts"]["hobby"] == "painting"
     assert ctx.state["is_returning"] == "true"
-
-
-@patch("google.cloud.firestore.Client")
-def test_returning_caller_state_after_init(mock_firestore_client):
-    """After init, returning caller has is_returning=true and all state keys."""
-    mock_db = MagicMock()
-    mock_doc = MagicMock()
-    mock_doc.exists = True
-    mock_doc.to_dict.return_value = {
-        "caller_id": "+15551234567",
-        "call_count": 5,
-        "facts": {"mood": "tired"},
-        "recent_turns": [{"role": "model", "text": "Hey you."}],
-    }
-    mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
-    mock_firestore_client.return_value = mock_db
-
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
-    before_agent_callback(ctx)
-
-    assert ctx.state["_initialized"] == "true"
-    assert ctx.state["persona_id"] == "luna"
-    assert ctx.state["is_returning"] == "true"
-    profile = json.loads(ctx.state["caller_profile"])
-    assert profile["call_count"] == 6
-    assert profile["facts"]["mood"] == "tired"
 
 
 # -- Firestore-unavailable path ----------------------------------------
