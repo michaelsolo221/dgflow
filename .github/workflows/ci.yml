@@ -27,7 +27,7 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
       - name: Mdformat check
-        run: uv run mdformat --check .
+        run: uv run mdformat --check docs/ night-line/ CONTRIBUTING.md
 
   build:
     runs-on: ubuntu-latest
@@ -43,10 +43,8 @@ jobs:
           python-version: '3.12'
       - name: Build package
         run: uv build
-      - name: Install twine
-        run: uv pip install twine
       - name: Check distribution
-        run: uv run twine check dist/*
+        run: uvx twine check dist/*
 
   test:
     runs-on: ubuntu-latest

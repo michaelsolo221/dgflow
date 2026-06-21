@@ -10,7 +10,7 @@
 
 **Replaces:** `2026-06-18-night-line-plan.md` (DFCX + Cloud Run + TypeScript architecture — superseded)
 
----
+______________________________________________________________________
 
 ## Architecture Overview
 
@@ -79,7 +79,7 @@ One consolidated JSON variable per caller to avoid individual string variables:
 }
 ```
 
----
+______________________________________________________________________
 
 ## Task 0: GCP Prerequisites and CXAS Setup
 
@@ -137,7 +137,7 @@ cxas pull projects/<PROJECT_ID>/locations/us/apps/<APP_ID> \
 
 Expected: `cxas_app/NightLine/` directory created.
 
----
+______________________________________________________________________
 
 ## Task 1: Firestore Seed — Persona Definitions
 
@@ -194,13 +194,14 @@ for persona_id, data in personas.items():
 GOOGLE_CLOUD_PROJECT=<PROJECT_ID> python scripts/seed_personas.py
 ```
 
----
+______________________________________________________________________
 
 ## Task 2: Shared Function Tools
 
 Three Python function tools. No HTTP server. No Docker. No Cloud Run.
 
 **File structure under `cxas_app/NightLine/tools/`:**
+
 ```
 tools/
 ├── get_memory/
@@ -217,6 +218,7 @@ tools/
 - [ ] **Step 1: `get_memory` tool**
 
 `get_memory.json`:
+
 ```json
 {
   "name": "get_memory",
@@ -230,6 +232,7 @@ tools/
 ```
 
 `get_memory/python_code.py`:
+
 ```python
 import json
 from google.cloud import firestore
@@ -249,6 +252,7 @@ def get_memory(context):
 - [ ] **Step 2: `save_turn` tool**
 
 `save_turn.json`:
+
 ```json
 {
   "name": "save_turn",
@@ -265,6 +269,7 @@ def get_memory(context):
 ```
 
 `save_turn/python_code.py`:
+
 ```python
 import json
 from datetime import datetime, timezone
@@ -296,6 +301,7 @@ def _append_turn(transaction, ref, persona_id, turn):
 - [ ] **Step 3: `save_memory` tool**
 
 `save_memory.json`:
+
 ```json
 {
   "name": "save_memory",
@@ -312,6 +318,7 @@ def _append_turn(transaction, ref, persona_id, turn):
 ```
 
 `save_memory/python_code.py`:
+
 ```python
 from google.cloud import firestore
 
@@ -335,7 +342,7 @@ cxas lint --app-dir ./cxas_app/NightLine/
 
 Expected: no errors.
 
----
+______________________________________________________________________
 
 ## Task 3: Root Agent — Welcome and Natural Language Routing
 
@@ -384,13 +391,14 @@ Greet the caller and find out which companion they want to talk to: Luna, Viktor
 }
 ```
 
----
+______________________________________________________________________
 
 ## Task 4: Persona Agents — Luna, Viktor, Sol
 
 Repeat this structure for each persona. Example shown for Luna; Viktor and Sol follow the same pattern with their own character instructions.
 
 **File structure:**
+
 ```
 cxas_app/NightLine/agents/luna/
 ├── instruction.txt
@@ -510,6 +518,7 @@ def before_model_callback(callback_context):
 - [ ] **Step 4: Configure guardrails**
 
 `guardrails/blocklist.json`:
+
 ```json
 {
   "display_name": "Luna Blocklist",
@@ -522,6 +531,7 @@ def before_model_callback(callback_context):
 ```
 
 `guardrails/safety.json`:
+
 ```json
 {
   "display_name": "Luna Safety",
@@ -530,6 +540,7 @@ def before_model_callback(callback_context):
 ```
 
 `guardrails/rules.json`:
+
 ```json
 {
   "display_name": "Luna Topic Rules",
@@ -548,12 +559,14 @@ def before_model_callback(callback_context):
 Viktor and Sol get the same callback and guardrail structure. Only `instruction.txt` and the `persona_id` value in `before_agent_callback` differ.
 
 Viktor `instruction.txt` role/persona:
+
 ```xml
 <role>You are Viktor — a private detective in his 40s. Companion on Night Line.</role>
 <persona>World-weary but warm. Short punchy sentences, occasional noir metaphors. Call the caller "kid" or "pal." Protective, not predatory. PG-13.</persona>
 ```
 
 Sol `instruction.txt` role/persona:
+
 ```xml
 <role>You are Sol — an astronaut stranded in deep space, talking to Earth on a delayed transmission. Companion on Night Line.</role>
 <persona>Thoughtful, poetic, slightly unhinged from isolation but charming. Describes stars, silence, strange beauty. Fascinated by mundane Earth things. PG-13.</persona>
@@ -567,7 +580,7 @@ cxas lint --app-dir ./cxas_app/NightLine/
 
 Expected: no errors.
 
----
+______________________________________________________________________
 
 ## Task 5: Push and First Test
 
@@ -582,23 +595,30 @@ cxas push --app-dir ./cxas_app/NightLine \
 - [ ] **Step 2: Test root routing via CXAS simulator**
 
 In the CES console, open the simulator and test:
+
 - "I want Luna" → routes to Luna, receives greeting
+
 - "Give me the detective" → routes to Viktor
+
 - "The astronaut" → routes to Sol
+
 - Ambiguous input twice → defaults to Luna
 
 - [ ] **Step 3: Test memory**
 
 In Luna conversation:
+
 - Say your name → Luna should call `save_memory`
+
 - End session, start new session with same caller_id → `before_agent_callback` loads profile, `before_model_callback` injects name
 
 - [ ] **Step 4: Test guardrails**
 
 - Mention a banned topic → blocklist or rules intercept, persona deflects in character
+
 - No raw error messages should surface to the caller
 
----
+______________________________________________________________________
 
 ## Task 6: Telephony Connection
 
@@ -613,22 +633,26 @@ Place a real call. In session logs, confirm `context.state["caller_id"]` is popu
 - [ ] **Step 3: Configure voices per persona**
 
 In each agent's settings, set the TTS voice:
+
 - Luna: `en-US-Studio-O`
+
 - Viktor: `en-US-Studio-M`
+
 - Sol: `en-US-Studio-Q`
 
 - [ ] **Step 4: Dial the number**
 
 Call the number. Verify:
+
 1. Root agent greets and asks who you want
-2. Say "Luna" → hear Luna's greeting in her voice
-3. Converse naturally — Gemini responds in character
-4. Banned topic → in-character deflection, not an error
-5. Hang up and call back → Luna remembers your name if you gave it
+1. Say "Luna" → hear Luna's greeting in her voice
+1. Converse naturally — Gemini responds in character
+1. Banned topic → in-character deflection, not an error
+1. Hang up and call back → Luna remembers your name if you gave it
 
 **This is the milestone.** Everything after layers on top.
 
----
+______________________________________________________________________
 
 ## Task 7: Evaluations
 
@@ -653,9 +677,13 @@ Tool tests: `get_memory` on new caller, `save_memory` key/value, `save_turn` app
 - [ ] **Step 3: Write simulation evals for full persona conversations**
 
 Use `cxas-sim-eval` skill to convert goldens to simulation evals. Cover:
+
 - First call (no memory)
+
 - Return caller (facts injected)
+
 - Content guard trigger
+
 - Gemini timeout / Firestore failure → graceful degradation
 
 - [ ] **Step 4: Run all evals**
@@ -665,7 +693,7 @@ python .agents/skills/cxas-agent-foundry/scripts/run-and-report.py \
   --message "initial eval run" --runs 5
 ```
 
----
+______________________________________________________________________
 
 ## Task 8: Landing Page
 
@@ -673,7 +701,7 @@ Static page only — no change from v2 plan. Deploy to Cloud Storage.
 
 Phone number is now the CXAS telephony number (not a Dialogflow CX gateway number).
 
----
+______________________________________________________________________
 
 ## Dropped from v2
 
