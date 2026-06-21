@@ -1,7 +1,7 @@
 - name: "Return Caller Session 1 — Share Facts"
   tags: [P0, HIGH, memory]
   session_parameters:
-    caller_id: "sim-return-001"
+    caller_id: "+15550010001"
   steps:
     - goal: "Luna greets the caller in her signature style on the first call."
       success_criteria:

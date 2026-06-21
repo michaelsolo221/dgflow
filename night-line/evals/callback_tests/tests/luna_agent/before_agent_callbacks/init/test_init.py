@@ -173,6 +173,33 @@ def test_returning_caller_facts_loaded(mock_firestore_client):
     assert ctx.state["is_returning"] == "true"
 
 
+
+@patch("google.cloud.firestore.Client")
+def test_second_call_boundary_is_returning_true(mock_firestore_client):
+    """Boundary: call_count == 1 on disk → bumped to 2 → is_returning == 'true'."""
+    mock_db = MagicMock()
+    mock_doc = MagicMock()
+    mock_doc.exists = True
+    mock_doc.to_dict.return_value = {
+        "caller_id": "+15551234567",
+        "call_count": 1,
+        "facts": {"name": "Bob"},
+        "recent_turns": [],
+    }
+    mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
+    mock_firestore_client.return_value = mock_db
+
+    ctx = MockCallbackContext({
+        "caller_id": "+15551234567",
+        "_initialized": "false",
+    })
+    before_agent_callback(ctx)
+
+    profile = json.loads(ctx.state["caller_profile"])
+    assert profile["call_count"] == 2  # incremented from 1
+    assert profile["facts"]["name"] == "Bob"
+    assert ctx.state["is_returning"] == "true"
+
 # -- Firestore-unavailable path ----------------------------------------
 
 @patch("google.cloud.firestore.Client")
