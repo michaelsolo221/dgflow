@@ -1,10 +1,16 @@
-"""get_memory — retrieve caller memory profile from Firestore."""
+"""get_memory — retrieve caller memory profile, state-cached or from Firestore."""
 
 import json
 
 
 def get_memory(callback_context):
-    """Read caller profile from Firestore. Returns empty profile on error."""
+    """Return caller profile from state cache. Falls back to Firestore if missing."""
+    # State cache path — populated by before_agent_callback/init
+    cached = callback_context.state.get("caller_profile", "")
+    if cached and cached != "{}":
+        return {"caller_profile": cached}
+
+    # Firestore fallback — only when state cache is missing
     try:
         from google.cloud import firestore
 
@@ -16,7 +22,6 @@ def get_memory(callback_context):
         if doc.exists:
             return {"caller_profile": json.dumps(doc.to_dict())}
 
-        # New caller — return empty profile
         return {
             "caller_profile": json.dumps({
                 "caller_id": caller_id,

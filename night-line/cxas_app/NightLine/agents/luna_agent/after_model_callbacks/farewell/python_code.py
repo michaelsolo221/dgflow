@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from gecx.types import LlmResponse, Part
+
 
 def after_model_callback(callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:  # noqa: F821
     state = callback_context.state
@@ -31,7 +33,6 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
     # Inject farewell before end_session
     state["_farewell_sent"] = "true"
 
-    from gecx.types import LlmResponse, Part
     return LlmResponse.from_parts(
         parts=[
             Part.from_text(text="Thanks for calling tonight. Sweet dreams."),
