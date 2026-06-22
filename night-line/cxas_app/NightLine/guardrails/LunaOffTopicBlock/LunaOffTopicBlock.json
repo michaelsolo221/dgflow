@@ -12,7 +12,7 @@
     }
   },
   "contentFilter": {
-    "matchType": "1",
+    "matchType": "SIMPLE_STRING_MATCH",
     "bannedContentsInUserInput": [
       "ChatGPT",
       "Claude",
