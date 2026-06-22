@@ -4,7 +4,6 @@
   "pythonFunction": {
     "name": "get_memory",
     "description": "Retrieve the caller's memory profile from Firestore. Returns stored facts and conversation history.",
-    "pythonCode": "tools/get_memory/python_function/python_code.py",
-    "inputSchema": {"type": "object", "properties": {}}
+    "pythonCode": "tools/get_memory/python_function/python_code.py"
   }
 }
