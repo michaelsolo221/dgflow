@@ -4,6 +4,20 @@
   "pythonFunction": {
     "name": "save_memory",
     "description": "Store a fact about the caller in Firestore. Merges into existing facts without overwriting.",
-    "pythonCode": "tools/save_memory/python_function/python_code.py"
+    "pythonCode": "tools/save_memory/python_function/python_code.py",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Fact category (e.g. name, job, hobby)"
+        },
+        "value": {
+          "type": "string",
+          "description": "Value to store for this fact"
+        }
+      },
+      "required": ["key", "value"]
+    }
   }
 }

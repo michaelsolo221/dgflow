@@ -26,9 +26,7 @@ tests:
       firestore_after:
         facts:
           name: Alice
-        facts:
           hobby: painting
-        facts:
           favorite_color: blue
 
   - name: "save_memory: updates existing fact"

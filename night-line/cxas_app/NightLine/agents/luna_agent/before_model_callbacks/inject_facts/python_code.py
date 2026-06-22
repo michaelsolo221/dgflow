@@ -33,7 +33,6 @@ def before_model_callback(callback_context: CallbackContext, llm_request: LlmReq
                 return Content(role="model", parts=[Part.from_text(
                     text="Guess you had to run. Call me back when you can't sleep. Goodnight."
                 )])
-            break
 
     # ---- Fact injection ----
     caller_profile_raw = state.get("caller_profile", "{}")

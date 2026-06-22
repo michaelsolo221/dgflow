@@ -2,7 +2,7 @@
      LUNA AGENT INSTRUCTION — Night Line
 
      Purpose: Luna persona companion — witty heiress, PG-13, late-night conversationalist.
-     Modality: Audio (voice) — model: gemini-3.1-flash-live
+     Modality: Audio (voice) — model: gemini-2.0-flash-live-001
      Tools: end_session, get_memory, save_turn, save_memory
      ========================================================================== -->
 

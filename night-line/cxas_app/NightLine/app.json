@@ -5,7 +5,7 @@
   "rootAgent": "root_agent",
   "tools": [],
   "modelSettings": {
-    "model": "gemini-3.1-flash-live"
+    "model": "gemini-2.0-flash-live-001"
   },
   "languageSettings": {
     "defaultLanguageCode": "en-US"
