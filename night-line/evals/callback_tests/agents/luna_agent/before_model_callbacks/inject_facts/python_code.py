@@ -47,5 +47,10 @@ def before_model_callback(callback_context, llm_request):
         facts_text += f"- {key}: {value}\n"
     facts_text += "\nUse these facts naturally in conversation. Don't list them — weave them in."
 
-    llm_request.contents.append(Content(role="user", parts=[Part.from_text(text=facts_text)]))
+    # Guard against consecutive user-role messages (rejected by some Gemini Live variants).
+    fact_part = Part.from_text(text=facts_text)
+    if llm_request.contents and llm_request.contents[-1].role == "user":
+        llm_request.contents[-1].parts.append(fact_part)
+    else:
+        llm_request.contents.append(Content(role="user", parts=[fact_part]))
     return None
