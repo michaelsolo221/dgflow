@@ -41,6 +41,10 @@ def init_caller_profile(callback_context, persona_id: str):
 
     caller_id = callback_context.state.get("caller_id", "")
 
+    # Snapshot call_count before any write so the except branch doesn't
+    # clobber history with a hardcoded 1.
+    _prior_call_count = 0
+
     try:
         from google.cloud import firestore
 
@@ -50,7 +54,8 @@ def init_caller_profile(callback_context, persona_id: str):
 
         if doc.exists:
             data = doc.to_dict()
-            data["call_count"] = data.get("call_count", 0) + 1
+            _prior_call_count = data.get("call_count", 0)
+            data["call_count"] = _prior_call_count + 1
         else:
             data = {
                 "caller_id": caller_id,
@@ -60,11 +65,13 @@ def init_caller_profile(callback_context, persona_id: str):
             }
 
         doc_ref.set(data, merge=True)
+        # Only update state after a successful write.
         callback_context.state["caller_profile"] = json.dumps(data)
     except Exception:
+        # Use the pre-increment count to avoid losing history on Firestore failure.
         callback_context.state["caller_profile"] = json.dumps({
             "caller_id": caller_id,
-            "call_count": 1,
+            "call_count": _prior_call_count,
             "facts": {},
             "recent_turns": [],
         })
