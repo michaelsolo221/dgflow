@@ -1,0 +1,83 @@
+variables:
+  caller_id: "+15551234567"
+
+tests:
+  - name: "save_turn: appends turn to existing caller"
+    description: "save_turn appends a new turn to the caller's recent_turns array"
+    tool: save_turn
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: true
+        data:
+          caller_id: "+15551234567"
+          call_count: 1
+          facts: {}
+          recent_turns:
+            - role: user
+              text: "Hey Luna"
+    params:
+      role: model
+      text: "Hey you. Didn't think anyone would actually call."
+    expected:
+      output:
+        agent_action: ""
+      firestore_after:
+        recent_turns:
+          length: 2
+
+  - name: "save_turn: caps history at 20 turns"
+    description: "When recent_turns has 20 entries, adding a new one drops the oldest"
+    tool: save_turn
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: true
+        data:
+          caller_id: "+15551234567"
+          recent_turns: "{{ 20_turns }}"
+    params:
+      role: model
+      text: "Turn 21"
+    expected:
+      firestore_after:
+        recent_turns:
+          length: 20
+        recent_turns_last:
+          text: "Turn 21"
+
+  - name: "save_turn: new caller creates document with turn"
+    description: "When the caller doesn't exist yet, save_turn creates a document with the turn"
+    tool: save_turn
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        exists: false
+    params:
+      role: user
+      text: "Hi, this is my first call"
+    expected:
+      output:
+        agent_action: ""
+      firestore_after:
+        recent_turns:
+          length: 1
+
+  - name: "save_turn: returns agent_action on Firestore error"
+    description: "When Firestore is unavailable, save_turn returns agent_action, never raises"
+    tool: save_turn
+    setup:
+      mock_firestore:
+        collection: callers
+        document: "+15551234567"
+        error: true
+    params:
+      role: user
+      text: "Hello?"
+    expected:
+      output:
+        agent_action:
+          contains: ["Couldn't save"]

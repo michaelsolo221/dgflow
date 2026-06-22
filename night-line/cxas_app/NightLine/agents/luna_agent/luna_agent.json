@@ -1,0 +1,8 @@
+{
+  "name": "luna_agent",
+  "displayName": "Luna",
+  "description": "Luna — the runaway heiress with a secret. Witty, PG-13, late-night companion.",
+  "instruction": "agents/luna_agent/instruction.txt",
+  "tools": ["end_session", "get_memory", "save_turn", "save_memory"],
+  "childAgents": []
+}
