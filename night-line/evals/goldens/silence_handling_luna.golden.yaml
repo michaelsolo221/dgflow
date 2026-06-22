@@ -1,5 +1,10 @@
 # NOTE: Luna-specific silence handling golden. Viktor and Sol silence goldens are TBD — each persona
 # has a distinct silence cadence (Viktor: gruff impatience, Sol: poetic drift) requiring separate evals.
+#
+# CONSECUTIVE PERSONA TURNS: The SCRAPI GoldenEval runner supports back-to-back speaker: persona turns
+# when the telephony adapter fires a silence event on the session — each silence event triggers a new
+# persona turn without requiring a user utterance. The runner replays these turns sequentially,
+# injecting a synthetic [silence] event between them. No user turn is needed between silence responses.
 
 conversations:
   - name: silence_handling

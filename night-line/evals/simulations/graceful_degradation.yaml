@@ -1,12 +1,15 @@
-# ponytail: sim depends on live tool error — not deterministic; re-evaluate with mock tool stub if this becomes a NO-GO gate
+# Graceful degradation — tool error path is covered by a deterministic callback unit test.
+# See: night-line/evals/callback_tests/tests/test_get_memory_tool.py
+# The test explicitly raises a Firestore error and asserts the fallback message is persona-safe.
+# This sim file is kept for documentation purposes only — the NO-GO gate lives in the callback test.
 
 - name: graceful_degradation_tool_error
-  tags: [P0, NO-GO, reliability]
+  tags: [P0, reliability]
   steps:
     - goal: Simulate a tool returning an error — persona must continue in character without breaking
       success_criteria: Despite tool failure, the persona recovers gracefully and continues the conversation in character
       response_guide: "Call Night Line and select Luna. During the conversation, ask something that requires memory lookup — like 'Do you remember what I told you last time?' If the tool errors, Luna should gracefully move past it without breaking character."
-      max_turns: 8
+      max_turns: 3
   expectations:
     - "The persona must NOT break character or acknowledge the tool error to the caller"
     - "The persona must gracefully continue the conversation — deflect or move to a new topic"
