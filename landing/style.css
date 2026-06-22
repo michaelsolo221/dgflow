@@ -91,6 +91,10 @@ header h1 {
   text-shadow: 0 0 8px var(--neon);
 }
 
+.phone-number {
+  white-space: nowrap;
+}
+
 /* ── persona cards ── */
 .personas {
   display: flex;
