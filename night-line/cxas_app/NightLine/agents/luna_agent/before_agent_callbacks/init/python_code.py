@@ -1,4 +1,5 @@
 """before_agent_callback — initialize caller profile on first turn."""
+
 import json
 
 from gecx.types import Content

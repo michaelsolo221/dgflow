@@ -1,7 +1,6 @@
 """save_turn — append a conversation turn to Firestore caller memory."""
 
 
-
 def save_turn(role, text, callback_context):
     """Save a turn (role + text) to the caller's Firestore document. Caps at 20 turns."""
     try:

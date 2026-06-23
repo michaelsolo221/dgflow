@@ -23,12 +23,14 @@ def get_memory(callback_context):
             return {"caller_profile": json.dumps(doc.to_dict())}
 
         return {
-            "caller_profile": json.dumps({
-                "caller_id": caller_id,
-                "call_count": 0,
-                "facts": {},
-                "recent_turns": [],
-            })
+            "caller_profile": json.dumps(
+                {
+                    "caller_id": caller_id,
+                    "call_count": 0,
+                    "facts": {},
+                    "recent_turns": [],
+                }
+            )
         }
     except Exception:
         return {"agent_action": "Memory is unavailable right now, but I'm still listening."}

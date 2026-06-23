@@ -1,4 +1,5 @@
 """after_model_callback — injects farewell before end_session."""
+
 from gecx.types import LlmResponse, Part
 
 
