@@ -12,7 +12,7 @@
     }
   },
   "contentFilter": {
-    "matchType": "ANY_MENTION",
+    "matchType": "SIMPLE_STRING_MATCH",
     "entries": [
       {"value": "ChatGPT"},
       {"value": "Claude"},
