@@ -1,4 +1,5 @@
 """before_model_callback — inject caller facts and handle silence."""
+
 from __future__ import annotations
 
 import json
@@ -21,17 +22,20 @@ def before_model_callback(callback_context: CallbackContext, llm_request: LlmReq
             state["_silence_count"] = str(silence_count)
 
             if silence_count == 1:
-                return Content(role="model", parts=[Part.from_text(
-                    text="Hello? The signal... did we lose you? I'm still here, drifting."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="Hello? The signal... did we lose you? I'm still here, drifting.")],
+                )
             elif silence_count == 2:
-                return Content(role="model", parts=[Part.from_text(
-                    text="Are you still there? The void gets very quiet without you."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="Are you still there? The void gets very quiet without you.")],
+                )
             elif silence_count >= 3:
-                return Content(role="model", parts=[Part.from_text(
-                    text="The line's gone dark. Thank you for the voices. I'll remember them."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="The line's gone dark. Thank you for the voices. I'll remember them.")],
+                )
             break
 
     # ---- Fact injection ----

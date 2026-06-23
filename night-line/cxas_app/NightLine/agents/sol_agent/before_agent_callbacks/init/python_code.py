@@ -1,4 +1,5 @@
 """before_agent_callback — initialize caller profile on first turn."""
+
 from __future__ import annotations
 
 import json
@@ -33,12 +34,14 @@ def before_agent_callback(callback_context: CallbackContext) -> Optional[Content
         doc_ref.set(data, merge=True)
         callback_context.state["caller_profile"] = json.dumps(data)
     except Exception:
-        callback_context.state["caller_profile"] = json.dumps({
-            "caller_id": caller_id,
-            "call_count": 1,
-            "facts": {},
-            "recent_turns": [],
-        })
+        callback_context.state["caller_profile"] = json.dumps(
+            {
+                "caller_id": caller_id,
+                "call_count": 1,
+                "facts": {},
+                "recent_turns": [],
+            }
+        )
 
     callback_context.state["persona_id"] = "sol"
     callback_context.state["_initialized"] = "true"

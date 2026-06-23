@@ -1,4 +1,5 @@
 """after_model_callback — injects farewell before end_session."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -32,6 +33,7 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
     state["_farewell_sent"] = "true"
 
     from gecx.types import LlmResponse, Part
+
     return LlmResponse.from_parts(
         parts=[
             Part.from_text(text="Take care of yourself, kid. The night's a long one."),

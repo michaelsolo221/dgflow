@@ -8,15 +8,20 @@ from unittest.mock import MagicMock, patch
 # Add the agents callback source dir to import path
 _agents_dir = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
-    / "agents" / "sol_agent" / "before_agent_callbacks" / "init"
+    / "agents"
+    / "sol_agent"
+    / "before_agent_callbacks"
+    / "init"
 )
 sys.path.insert(0, str(_agents_dir))
 
 
 # -- Helpers -----------------------------------------------------------
 
+
 class MockState(dict):
     """State dict that supports .get()"""
+
     pass
 
 
@@ -27,14 +32,17 @@ class MockCallbackContext:
 
 # -- Tests -------------------------------------------------------------
 
+
 def test_turn_guard_fires_on_second_invocation():
     """Turn guard: returns None immediately when _initialized == 'true'."""
     from python_code import before_agent_callback
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "true",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "true",
+        }
+    )
     result = before_agent_callback(ctx)
     assert result is None
 
@@ -57,10 +65,12 @@ def test_firestore_load_populates_state(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     result = before_agent_callback(ctx)
 
     assert result is None
@@ -89,10 +99,12 @@ def test_call_count_increments_on_repeat_caller(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     profile = json.loads(ctx.state["caller_profile"])
@@ -106,10 +118,12 @@ def test_exception_falls_back_to_safe_default(mock_firestore_client):
 
     mock_firestore_client.side_effect = RuntimeError("Firestore down")
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     result = before_agent_callback(ctx)
 
     assert result is None
