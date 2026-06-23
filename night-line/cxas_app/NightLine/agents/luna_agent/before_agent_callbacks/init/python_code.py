@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 
-from gecx.types import Content
 
 
 def before_agent_callback(callback_context: CallbackContext) -> Content | None:  # noqa: F821

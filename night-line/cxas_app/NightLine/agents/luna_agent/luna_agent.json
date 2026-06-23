@@ -1,8 +1,27 @@
 {
   "name": "luna_agent",
   "displayName": "Luna",
-  "description": "Luna — the runaway heiress with a secret. Witty, PG-13, late-night companion.",
+  "description": "Luna \u2014 the runaway heiress with a secret. Witty, PG-13, late-night companion.",
   "instruction": "agents/luna_agent/instruction.txt",
-  "tools": ["end_session", "get_memory", "save_turn", "save_memory"],
-  "childAgents": []
+  "tools": [
+    "end_session",
+    "get_memory",
+    "save_turn",
+    "save_memory"
+  ],
+  "beforeAgentCallbacks": [
+    {
+      "pythonCode": "agents/luna_agent/before_agent_callbacks/init/python_code.py"
+    }
+  ],
+  "beforeModelCallbacks": [
+    {
+      "pythonCode": "agents/luna_agent/before_model_callbacks/inject_facts/python_code.py"
+    }
+  ],
+  "afterModelCallbacks": [
+    {
+      "pythonCode": "agents/luna_agent/after_model_callbacks/farewell/python_code.py"
+    }
+  ]
 }

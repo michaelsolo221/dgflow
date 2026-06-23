@@ -42,9 +42,46 @@ Three hooks available on each agent, executed in order per turn:
 
 All receive `callback_context: CallbackContext`. Session state is at `callback_context.state` (dict, string-typed values).
 
+## Agent JSON structure
+
+Each agent directory needs a `<name>.json` with explicit callback and child declarations — the server does **not** auto-discover from directory structure:
+
+```json
+{
+  "name": "luna_agent",
+  "displayName": "luna_agent",
+  "instruction": "agents/luna_agent/instruction.txt",
+  "tools": ["end_session", "get_memory"],
+  "childAgents": ["sub_agent_name"],
+  "beforeAgentCallbacks": [{"pythonCode": "agents/luna_agent/before_agent_callbacks/init/python_code.py"}],
+  "beforeModelCallbacks": [{"pythonCode": "agents/luna_agent/before_model_callbacks/inject_facts/python_code.py"}],
+  "afterModelCallbacks":  [{"pythonCode": "agents/luna_agent/after_model_callbacks/farewell/python_code.py"}]
+}
+```
+
+- `displayName` must match `name` exactly — displayName mismatches cause 400 on push
+- `childAgents` values must be exact `name` field values (not displayName)
+- Omit `childAgents` entirely on leaf agents (empty array `[]` may cause issues)
+- Custom tools must also be listed in `app.json`'s top-level `tools` array
+- `end_session` is a platform system tool — do not create a `tools/end_session/` directory
+
+## Callbacks
+
+Three hooks available on each agent, executed in order per turn:
+
+1. `before_agent_callback` — fires once on the first turn; use for init / memory load
+2. `before_model_callback` — fires before every model call; use for context injection
+3. `after_model_callback` — fires after every model response; use for logging / farewell detection
+
+All receive `callback_context: CallbackContext`. Session state is at `callback_context.state` (dict, string-typed values).
+
+**Platform globals — do NOT import these:** `CallbackContext`, `Content`, `Part`, `LlmResponse`, `LlmRequest` are auto-injected into the callback sandbox. Importing `gecx` will cause a 400 push failure. Only standard library imports (`typing`, `json`, `re`) need explicit import statements.
+
+Template: https://github.com/GoogleCloudPlatform/cxas-scrapi/tree/main/.agents/skills/cxas-agent-foundry/assets/project-template
+
 ## Known proto constraints (hard-won)
 
-- `rootAgent` is **not** a valid `App` field — omit from `app.json`
+- `rootAgent` **is** a valid `App` field — set it to the entry agent name (e.g. `"root_agent"`)
 - `inputSchema` is **not** valid on `Tool` or `PythonFunction` — schema is inferred from Python signature
 - Location for this project: `us` (not `global`, not `us-central1`)
 - `BOOLEAN` session variables are accessed as strings — use `"true"` / `""`
