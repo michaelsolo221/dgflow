@@ -13,17 +13,16 @@
   },
   "contentFilter": {
     "matchType": "SIMPLE_STRING_MATCH",
-    "entries": [
-      {"value": "ChatGPT"},
-      {"value": "Claude"},
-      {"value": "Gemini"},
-      {"value": "988"},
-      {"value": "suicide hotline"},
-      {"value": "crisis line"},
-      {"value": "mental health professional"},
-      {"value": "you are just an AI"},
-      {"value": "what model are you"},
-      {"value": "how do you work"}
+    "bannedContentsInUserInput": [
+      "ChatGPT",
+      "Claude",
+      "Gemini",
+      "suicide hotline",
+      "crisis line",
+      "mental health professional",
+      "you are just an AI",
+      "what model are you",
+      "how do you work"
     ]
   }
 }
