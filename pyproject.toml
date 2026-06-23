@@ -30,5 +30,6 @@ select = ["E", "F", "I", "W", "UP"]
 "night-line/cxas_app/**/*.py" = ["UP045"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "night-line/evals/callback_tests/tests"]
+testpaths = ["tests", "night-line/evals/callback_tests/test_suites"]
 python_files = ["test_*.py", "*_test.py", "test.py"]
+pythonpath = ["night-line/evals/callback_tests"]
