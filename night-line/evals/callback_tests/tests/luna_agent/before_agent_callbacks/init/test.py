@@ -76,6 +76,7 @@ def test_firestore_load_populates_state(mock_firestore_client):
     assert result is None
     assert ctx.state["_initialized"] == "true"
     assert ctx.state["persona_id"] == "luna"
+    assert ctx.state["is_returning"] == "true"  # call_count=4 > 1
 
     profile = json.loads(ctx.state["caller_profile"])
     assert profile["call_count"] == 4  # incremented
@@ -109,6 +110,24 @@ def test_call_count_increments_on_repeat_caller(mock_firestore_client):
 
     profile = json.loads(ctx.state["caller_profile"])
     assert profile["call_count"] == 8
+    assert ctx.state["is_returning"] == "true"
+
+
+@patch("google.cloud.firestore.Client")
+def test_new_caller_is_returning_is_empty(mock_firestore_client):
+    """First-time caller has is_returning == '' (empty string, not 'true')."""
+    from python_code import before_agent_callback
+
+    mock_db = MagicMock()
+    mock_doc = MagicMock()
+    mock_doc.exists = False
+    mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
+    mock_firestore_client.return_value = mock_db
+
+    ctx = MockCallbackContext({"caller_id": "+15559999999", "_initialized": "false"})
+    before_agent_callback(ctx)
+
+    assert ctx.state["is_returning"] == ""
 
 
 @patch("google.cloud.firestore.Client")

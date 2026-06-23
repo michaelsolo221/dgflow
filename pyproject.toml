@@ -31,3 +31,4 @@ select = ["E", "F", "I", "W", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "night-line/evals/callback_tests/tests"]
+python_files = ["test_*.py", "*_test.py", "test.py"]
