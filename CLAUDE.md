@@ -16,6 +16,8 @@ Single-context — one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents
 
 Before writing or reviewing CXAS agent code, read `docs/conventions.md`. It is the definitive source for naming, CLI invocation, `app.json` required fields, YAML gotchas, platform pitfalls, callback signatures, CI hygiene, and eval session parameters.
 
+For platform overview, known proto constraints, callback order, and canonical links to GCP console / cxas-scrapi docs, see `docs/cxas-platform.md`.
+
 ## Repository architecture
 
 | Repo | Purpose |
