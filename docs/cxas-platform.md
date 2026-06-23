@@ -6,7 +6,7 @@ A stable-link reference for the CXAS platform used by Night Line. Prefer followi
 
 CX Agent Studio (CES) is Google's hosted agent platform built on the `google.cloud.ces_v1beta` proto. It runs multi-modal voice agents on GCP infrastructure, handles telephony, and exposes a Python callback SDK.
 
-SDK on PyPI: `cxas-scrapi` — source at https://github.com/GoogleCloudPlatform/cxas-scrapi  
+SDK on PyPI: `cxas-scrapi` — source at https://github.com/GoogleCloudPlatform/cxas-scrapi\
 Agent authoring guide: https://github.com/GoogleCloudPlatform/cxas-scrapi/blob/main/AGENTS.md
 
 ## Key concepts
@@ -37,8 +37,8 @@ uv run cxas pull "<app-name>" --project-id <project> --location us --target-dir 
 Three hooks available on each agent, executed in order per turn:
 
 1. `before_agent_callback` — fires once on the first turn; use for init / memory load
-2. `before_model_callback` — fires before every model call; use for context injection
-3. `after_model_callback` — fires after every model response; use for logging / farewell detection
+1. `before_model_callback` — fires before every model call; use for context injection
+1. `after_model_callback` — fires after every model response; use for logging / farewell detection
 
 All receive `callback_context: CallbackContext`. Session state is at `callback_context.state` (dict, string-typed values).
 
@@ -70,8 +70,8 @@ Each agent directory needs a `<name>.json` with explicit callback and child decl
 Three hooks available on each agent, executed in order per turn:
 
 1. `before_agent_callback` — fires once on the first turn; use for init / memory load
-2. `before_model_callback` — fires before every model call; use for context injection
-3. `after_model_callback` — fires after every model response; use for logging / farewell detection
+1. `before_model_callback` — fires before every model call; use for context injection
+1. `after_model_callback` — fires after every model response; use for logging / farewell detection
 
 All receive `callback_context: CallbackContext`. Session state is at `callback_context.state` (dict, string-typed values).
 
