@@ -18,17 +18,20 @@ def before_model_callback(callback_context, llm_request):
             state["_silence_count"] = str(silence_count)
 
             if silence_count == 1:
-                return Content(role="model", parts=[Part.from_text(
-                    text="Still there? I was just enjoying the quiet for a second."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="Still there? I was just enjoying the quiet for a second.")],
+                )
             elif silence_count == 2:
-                return Content(role="model", parts=[Part.from_text(
-                    text="Hey... you still with me? I was just getting to the good part."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="Hey... you still with me? I was just getting to the good part.")],
+                )
             elif silence_count >= 3:
-                return Content(role="model", parts=[Part.from_text(
-                    text="Guess you had to run. Call me back when you can't sleep. Goodnight."
-                )])
+                return Content(
+                    role="model",
+                    parts=[Part.from_text(text="Guess you had to run. Call me back when you can't sleep. Goodnight.")],
+                )
             break
 
     # ---- Fact injection ----

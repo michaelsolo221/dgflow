@@ -2,14 +2,16 @@
 
 import importlib.util
 import json
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Import the callback from the eval agents copy with a unique module name
 _agents_dir = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
-    / "agents" / "luna_agent" / "before_agent_callbacks" / "init"
+    / "agents"
+    / "luna_agent"
+    / "before_agent_callbacks"
+    / "init"
 )
 _spec = importlib.util.spec_from_file_location(
     "before_agent_init_python_code",
@@ -22,8 +24,10 @@ before_agent_callback = _before_agent_module.before_agent_callback
 
 # -- Helpers -----------------------------------------------------------
 
+
 class MockState(dict):
     """State dict that supports .get()"""
+
     pass
 
 
@@ -34,12 +38,15 @@ class MockCallbackContext:
 
 # -- Tests -------------------------------------------------------------
 
+
 def test_turn_guard_fires_on_second_invocation():
     """Turn guard: returns None immediately when _initialized == 'true'."""
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "true",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "true",
+        }
+    )
     result = before_agent_callback(ctx)
     assert result is None
 
@@ -60,10 +67,12 @@ def test_firestore_load_populates_state(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     result = before_agent_callback(ctx)
 
     assert result is None
@@ -90,10 +99,12 @@ def test_call_count_increments_on_repeat_caller(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     profile = json.loads(ctx.state["caller_profile"])
@@ -105,10 +116,12 @@ def test_exception_falls_back_to_safe_default(mock_firestore_client):
     """When Firestore throws, a safe default profile is set."""
     mock_firestore_client.side_effect = RuntimeError("Firestore down")
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     result = before_agent_callback(ctx)
 
     assert result is None
@@ -123,6 +136,7 @@ def test_exception_falls_back_to_safe_default(mock_firestore_client):
 
 # -- New Caller Greeting tests -----------------------------------------
 
+
 @patch("google.cloud.firestore.Client")
 def test_new_caller_creates_fresh_profile(mock_firestore_client):
     """New caller (no Firestore doc): call_count=1, empty facts, is_returning=false."""
@@ -132,10 +146,12 @@ def test_new_caller_creates_fresh_profile(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     profile = json.loads(ctx.state["caller_profile"])
@@ -143,7 +159,9 @@ def test_new_caller_creates_fresh_profile(mock_firestore_client):
     assert profile["facts"] == {}
     assert ctx.state["is_returning"] == "false"
 
+
 # -- Returning Caller Greeting tests -----------------------------------
+
 
 @patch("google.cloud.firestore.Client")
 def test_returning_caller_facts_loaded(mock_firestore_client):
@@ -160,10 +178,12 @@ def test_returning_caller_facts_loaded(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     profile = json.loads(ctx.state["caller_profile"])
@@ -171,7 +191,6 @@ def test_returning_caller_facts_loaded(mock_firestore_client):
     assert profile["facts"]["name"] == "Bob"
     assert profile["facts"]["hobby"] == "painting"
     assert ctx.state["is_returning"] == "true"
-
 
 
 @patch("google.cloud.firestore.Client")
@@ -189,10 +208,12 @@ def test_second_call_boundary_is_returning_true(mock_firestore_client):
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
     mock_firestore_client.return_value = mock_db
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     profile = json.loads(ctx.state["caller_profile"])
@@ -200,17 +221,21 @@ def test_second_call_boundary_is_returning_true(mock_firestore_client):
     assert profile["facts"]["name"] == "Bob"
     assert ctx.state["is_returning"] == "true"
 
+
 # -- Firestore-unavailable path ----------------------------------------
+
 
 @patch("google.cloud.firestore.Client")
 def test_firestore_unavailable_is_returning_false(mock_firestore_client):
     """When Firestore fails, is_returning defaults to false."""
     mock_firestore_client.side_effect = RuntimeError("Firestore down")
 
-    ctx = MockCallbackContext({
-        "caller_id": "+15551234567",
-        "_initialized": "false",
-    })
+    ctx = MockCallbackContext(
+        {
+            "caller_id": "+15551234567",
+            "_initialized": "false",
+        }
+    )
     before_agent_callback(ctx)
 
     assert ctx.state["is_returning"] == "false"
