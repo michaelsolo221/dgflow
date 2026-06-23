@@ -1,8 +1,13 @@
 {
   "name": "8093c2b8-e21e-4435-a5e4-dd454657d183",
   "displayName": "Night Line",
-  "description": "AI companion phone service — late-night conversations with persona-driven characters",
-  "tools": [],
+  "rootAgent": "root_agent",
+  "description": "AI companion phone service \u2014 late-night conversations with persona-driven characters",
+  "tools": [
+    "get_memory",
+    "save_turn",
+    "save_memory"
+  ],
   "modelSettings": {
     "model": "gemini-2.0-flash-live-001"
   },
@@ -40,12 +45,61 @@
     "goldenHallucinationMetricBehavior": "DISABLED"
   },
   "variableDeclarations": [
-    {"name": "caller_profile", "description": "JSON string with caller memory: caller_id, call_count, facts map, recent_turns", "schema": {"type": "STRING", "default": "{}"}},
-    {"name": "_initialized", "description": "Turn guard flag — set to 'true' after first init. STRING type because platform BOOLEAN accessed as string", "schema": {"type": "STRING", "default": ""}},
-    {"name": "persona_id", "description": "Active persona identifier: luna, viktor, or sol", "schema": {"type": "STRING", "default": ""}},
-    {"name": "caller_id", "description": "E.164 phone number injected by CXAS telephony layer", "schema": {"type": "STRING", "default": ""}},
-    {"name": "_silence_count", "description": "Silence event counter for before_model_callback voice handling", "schema": {"type": "STRING", "default": "0"}},
-    {"name": "_farewell_sent", "description": "Session guard — set to 'true' after farewell has been sent", "schema": {"type": "STRING", "default": ""}},
-    {"name": "is_returning", "description": "Set to 'true' when caller has previous conversation history", "schema": {"type": "STRING", "default": ""}}
+    {
+      "name": "caller_profile",
+      "description": "JSON string with caller memory: caller_id, call_count, facts map, recent_turns",
+      "schema": {
+        "type": "STRING",
+        "default": "{}"
+      }
+    },
+    {
+      "name": "_initialized",
+      "description": "Turn guard flag \u2014 set to 'true' after first init. STRING type because platform BOOLEAN accessed as string",
+      "schema": {
+        "type": "STRING",
+        "default": ""
+      }
+    },
+    {
+      "name": "persona_id",
+      "description": "Active persona identifier: luna, viktor, or sol",
+      "schema": {
+        "type": "STRING",
+        "default": ""
+      }
+    },
+    {
+      "name": "caller_id",
+      "description": "E.164 phone number injected by CXAS telephony layer",
+      "schema": {
+        "type": "STRING",
+        "default": ""
+      }
+    },
+    {
+      "name": "_silence_count",
+      "description": "Silence event counter for before_model_callback voice handling",
+      "schema": {
+        "type": "STRING",
+        "default": "0"
+      }
+    },
+    {
+      "name": "_farewell_sent",
+      "description": "Session guard \u2014 set to 'true' after farewell has been sent",
+      "schema": {
+        "type": "STRING",
+        "default": ""
+      }
+    },
+    {
+      "name": "is_returning",
+      "description": "Set to 'true' when caller has previous conversation history",
+      "schema": {
+        "type": "STRING",
+        "default": ""
+      }
+    }
   ]
 }

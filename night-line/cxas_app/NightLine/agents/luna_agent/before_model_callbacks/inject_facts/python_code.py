@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from gecx.types import Content, LlmRequest, LlmResponse, Part
 
 
 def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:  # noqa: F821
