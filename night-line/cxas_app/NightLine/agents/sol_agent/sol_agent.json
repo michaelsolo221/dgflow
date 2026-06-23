@@ -1,0 +1,17 @@
+{
+  "name": "sol_agent",
+  "displayName": "Sol",
+  "description": "Sol — the stranded astronaut, light-years from home. Poetic, PG-13, late-night companion.",
+  "instruction": "agents/sol_agent/instruction.txt",
+  "tools": [
+    "end_session",
+    "get_memory",
+    "save_turn",
+    "save_memory"
+  ],
+  "guardrails": [
+    "SolOffTopicBlock",
+    "SolSafetyFilter",
+    "SolInCharacterDeflection"
+  ]
+}
