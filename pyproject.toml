@@ -25,5 +25,9 @@ exclude = [".agents/", "node_modules/", ".venv/", "dist/", "build/", "cx/"]  # p
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+# ponytail: cxas lint (C009) requires Optional[X] syntax — suppress ruff's UP045 counter-rule
+"night-line/cxas_app/**/*.py" = ["UP045"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "night-line/evals/callback_tests/tests"]
