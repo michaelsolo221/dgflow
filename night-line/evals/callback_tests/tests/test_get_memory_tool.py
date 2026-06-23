@@ -4,6 +4,7 @@ These tests explicitly inject Firestore failures and assert the tool's fallback
 message is persona-safe: no 'error', 'failed', 'system', or 'try again' language
 that would break character if surfaced by the persona.
 """
+
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -11,7 +12,11 @@ from unittest.mock import MagicMock, patch
 # Point at the real tool implementation
 _TOOL_DIR = (
     Path(__file__).resolve().parent.parent.parent.parent
-    / "cxas_app" / "NightLine" / "tools" / "get_memory" / "python_function"
+    / "cxas_app"
+    / "NightLine"
+    / "tools"
+    / "get_memory"
+    / "python_function"
 )
 sys.path.insert(0, str(_TOOL_DIR))
 
@@ -23,6 +28,7 @@ class MockCallbackContext:
 
 def _get_get_memory():
     import importlib
+
     sys.modules.pop("python_code", None)
     mod = importlib.import_module("python_code")
     return mod.get_memory
@@ -60,8 +66,7 @@ def test_firestore_error_fallback_message_is_persona_safe(mock_firestore_client)
     message = result.get("agent_action", "").lower()
     found_banned = [word for word in _BANNED_WORDS if word in message]
     assert not found_banned, (
-        f"agent_action message contains banned word(s) {found_banned!r} "
-        f"that would break persona character: {message!r}"
+        f"agent_action message contains banned word(s) {found_banned!r} that would break persona character: {message!r}"
     )
 
 
@@ -70,9 +75,7 @@ def test_firestore_doc_get_raises_returns_agent_action(mock_firestore_client):
     """Error during .get() (not just Client init) also falls back gracefully."""
     get_memory = _get_get_memory()
     mock_db = MagicMock()
-    mock_db.collection.return_value.document.return_value.get.side_effect = RuntimeError(
-        "Network timeout"
-    )
+    mock_db.collection.return_value.document.return_value.get.side_effect = RuntimeError("Network timeout")
     mock_firestore_client.return_value = mock_db
 
     ctx = MockCallbackContext({"caller_id": "+15551234567"})
@@ -81,6 +84,4 @@ def test_firestore_doc_get_raises_returns_agent_action(mock_firestore_client):
     assert "agent_action" in result
     message = result["agent_action"].lower()
     found_banned = [word for word in _BANNED_WORDS if word in message]
-    assert not found_banned, (
-        f"agent_action message contains banned word(s) {found_banned!r}: {message!r}"
-    )
+    assert not found_banned, f"agent_action message contains banned word(s) {found_banned!r}: {message!r}"
