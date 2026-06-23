@@ -2,7 +2,7 @@
      ROOT AGENT INSTRUCTION — Night Line
 
      Purpose: Welcome callers and route them to the right late-night companion.
-     Modality: Audio (voice) — model: gemini-3.1-flash-live
+     Modality: Audio (voice) — model: gemini-3.1-flash-live-preview
      Tools: end_session only. No memory / state tools.
      Child agents: empty (persona routing completed in Slice 7).
 
