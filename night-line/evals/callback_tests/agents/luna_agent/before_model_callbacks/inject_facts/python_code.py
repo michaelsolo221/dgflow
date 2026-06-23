@@ -4,11 +4,11 @@ import json
 
 
 def before_model_callback(callback_context, llm_request):
+    from gecx.types import Content, Part
 
     state = callback_context.state
 
     # ---- Silence detection ----
-    # Check incoming context for silence markers (voice modality)
     silence_count = int(state.get("_silence_count", "0"))
 
     for part in llm_request.contents[-1].parts if llm_request.contents else []:
@@ -32,6 +32,7 @@ def before_model_callback(callback_context, llm_request):
                     role="model",
                     parts=[Part.from_text(text="Guess you had to run. Call me back when you can't sleep. Goodnight.")],
                 )
+            break
 
     # ---- Fact injection ----
     caller_profile_raw = state.get("caller_profile", "{}")
