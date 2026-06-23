@@ -1,12 +1,9 @@
 """before_agent_callback — initialize caller profile on first turn."""
 
 import json
-from typing import Optional
-
-from gecx.types import Content
 
 
-def before_agent_callback(callback_context: CallbackContext) -> Optional[Content]:  # noqa: F821
+def before_agent_callback(callback_context):
     # Turn guard — skip init on subsequent turns
     if callback_context.state.get("_initialized") == "true":
         return None

@@ -1,12 +1,9 @@
 """before_model_callback — inject caller facts and handle silence."""
 
 import json
-from typing import Optional
-
-from gecx.types import Content, LlmRequest, LlmResponse, Part
 
 
-def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:  # noqa: F821
+def before_model_callback(callback_context, llm_request):
 
     state = callback_context.state
 
