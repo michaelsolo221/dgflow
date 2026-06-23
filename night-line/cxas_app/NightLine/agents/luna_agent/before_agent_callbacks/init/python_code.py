@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
 
 from gecx.types import Content
 
 
-def before_agent_callback(callback_context: CallbackContext) -> Optional[Content]:  # noqa: F821
+def before_agent_callback(callback_context: CallbackContext) -> Content | None:  # noqa: F821
     # Turn guard — skip init on subsequent turns
     if callback_context.state.get("_initialized") == "true":
         return None

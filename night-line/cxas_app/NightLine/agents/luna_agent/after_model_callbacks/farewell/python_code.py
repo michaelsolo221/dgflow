@@ -1,12 +1,10 @@
 """after_model_callback — injects farewell before end_session."""
 from __future__ import annotations
 
-from typing import Optional
-
 from gecx.types import LlmResponse, Part
 
 
-def after_model_callback(callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:  # noqa: F821
+def after_model_callback(callback_context: CallbackContext, llm_response: LlmResponse) -> LlmResponse | None:  # noqa: F821
     state = callback_context.state
 
     # Session-level guard — only farewell once

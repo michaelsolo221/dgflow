@@ -1,6 +1,5 @@
 """save_turn — append a conversation turn to Firestore caller memory."""
 
-import json
 
 
 def save_turn(role, text, callback_context):
