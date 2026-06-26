@@ -33,16 +33,18 @@ def before_agent_callback(callback_context: CallbackContext) -> Optional[Content
 
         doc_ref.set(data, merge=True)
         callback_context.state["caller_profile"] = json.dumps(data)
+        call_count = data.get("call_count", 1)
     except Exception:
-        callback_context.state["caller_profile"] = json.dumps(
-            {
-                "caller_id": caller_id,
-                "call_count": 1,
-                "facts": {},
-                "recent_turns": [],
-            }
-        )
+        data = {
+            "caller_id": caller_id,
+            "call_count": 1,
+            "facts": {},
+            "recent_turns": [],
+        }
+        callback_context.state["caller_profile"] = json.dumps(data)
+        call_count = 1
 
+    callback_context.state["is_returning"] = "true" if call_count > 1 else "false"
     callback_context.state["persona_id"] = "viktor"
     callback_context.state["_initialized"] = "true"
 
