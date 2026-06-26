@@ -26,7 +26,6 @@ _spec.loader.exec_module(_tool_mod)
 get_memory = _tool_mod.get_memory
 
 
-
 _BANNED_WORDS = {"error", "failed", "system", "try again"}
 
 

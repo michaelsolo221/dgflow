@@ -20,8 +20,6 @@ _spec.loader.exec_module(_mod)
 before_agent_callback = _mod.before_agent_callback
 
 
-
-
 def test_turn_guard_fires_on_second_invocation():
     """Turn guard: returns None immediately when _initialized == 'true'."""
     ctx = MockCallbackContext({"caller_id": "+15551234567", "_initialized": "true"})

@@ -55,7 +55,6 @@ _spec.loader.exec_module(_before_model_module)
 before_model_callback = _before_model_module.before_model_callback
 
 
-
 class MockLlmRequest:
     """Mock LlmRequest with a contents list."""
 
