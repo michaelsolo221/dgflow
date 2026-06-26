@@ -35,6 +35,8 @@ jobs:
         run: uv run mdformat --check docs/ night-line/ README.md CLAUDE.md CONTEXT.md CONTRIBUTING.md
       - name: CXAS structural lint
         run: uv run cxas lint --app-dir night-line/cxas_app/NightLine/
+      - name: Session param audit
+        run: python3 night-line/scripts/check_session_params.py
 
   test:
     runs-on: ubuntu-latest

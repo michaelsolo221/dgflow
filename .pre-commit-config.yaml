@@ -23,6 +23,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-session-params
+        name: "app.json session param audit"
+        entry: python3 night-line/scripts/check_session_params.py
+        language: system
+        pass_filenames: false
+        files: "night-line/cxas_app/NightLine/(app\\.json|agents/.*python_code\\.py)"
+
       - id: brand-check-code
         name: Brand Check (Code)
         entry: "echo 'brand-check-code: placeholder — requires Gemini API key'"
