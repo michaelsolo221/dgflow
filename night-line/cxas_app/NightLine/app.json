@@ -45,61 +45,13 @@
     "goldenHallucinationMetricBehavior": "DISABLED"
   },
   "variableDeclarations": [
-    {
-      "name": "caller_profile",
-      "description": "JSON string with caller memory: caller_id, call_count, facts map, recent_turns",
-      "schema": {
-        "type": "STRING",
-        "default": "{}"
-      }
-    },
-    {
-      "name": "_initialized",
-      "description": "Turn guard flag \u2014 set to 'true' after first init. STRING type because platform BOOLEAN accessed as string",
-      "schema": {
-        "type": "STRING",
-        "default": ""
-      }
-    },
-    {
-      "name": "persona_id",
-      "description": "Active persona identifier: luna, viktor, or sol",
-      "schema": {
-        "type": "STRING",
-        "default": ""
-      }
-    },
-    {
-      "name": "caller_id",
-      "description": "E.164 phone number injected by CXAS telephony layer",
-      "schema": {
-        "type": "STRING",
-        "default": ""
-      }
-    },
-    {
-      "name": "_silence_count",
-      "description": "Silence event counter for before_model_callback voice handling",
-      "schema": {
-        "type": "STRING",
-        "default": "0"
-      }
-    },
-    {
-      "name": "_farewell_sent",
-      "description": "Session guard \u2014 set to 'true' after farewell has been sent",
-      "schema": {
-        "type": "STRING",
-        "default": ""
-      }
-    },
-    {
-      "name": "is_returning",
-      "description": "Set to 'true' when caller has previous conversation history",
-      "schema": {
-        "type": "STRING",
-        "default": ""
-      }
-    }
+    {"name": "caller_profile", "description": "JSON string with caller memory: caller_id, call_count, facts map, recent_turns", "schema": {"type": "STRING", "default": "{}"}},
+    {"name": "_initialized", "description": "Turn guard flag — set to 'true' after first init. STRING type because platform BOOLEAN accessed as string", "schema": {"type": "STRING", "default": ""}},
+    {"name": "persona_id", "description": "Active persona identifier: luna, viktor, or sol", "schema": {"type": "STRING", "default": ""}},
+    {"name": "caller_id", "description": "E.164 phone number injected by CXAS telephony layer", "schema": {"type": "STRING", "default": ""}},
+    {"name": "_silence_count", "description": "Silence event counter for before_model_callback voice handling", "schema": {"type": "STRING", "default": "0"}},
+    {"name": "_farewell_sent", "description": "Session guard — set to 'true' after farewell has been sent", "schema": {"type": "STRING", "default": ""}},
+    {"name": "is_returning", "description": "Set to 'true' when caller has previous conversation history", "schema": {"type": "STRING", "default": ""}},
+    {"name": "current_date", "description": "Current date injected at runtime for instruction templates", "schema": {"type": "STRING", "default": ""}}
   ]
 }

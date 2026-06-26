@@ -1,6 +1,6 @@
 {
   "name": "luna_agent",
-  "displayName": "luna_agent",
+  "displayName": "Luna",
   "description": "Luna \u2014 the runaway heiress with a secret. Witty, PG-13, late-night companion.",
   "instruction": "agents/luna_agent/instruction.txt",
   "tools": [
@@ -23,5 +23,10 @@
     {
       "pythonCode": "agents/luna_agent/after_model_callbacks/farewell/python_code.py"
     }
+  ],
+  "guardrails": [
+    "LunaOffTopicBlock",
+    "LunaSafetyFilter",
+    "LunaInCharacterDeflection"
   ]
 }

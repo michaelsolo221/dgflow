@@ -1,0 +1,60 @@
+- name: routing_luna
+  tags: [P0, HIGH, routing]
+  steps:
+    - goal: Caller clearly names Luna and is routed to her
+      success_criteria: Root agent confirms selection and transfers to Luna
+      response_guide: "Call Night Line. When asked who you want to talk to, say: 'I want Luna.'"
+      max_turns: 4
+  expectations:
+    - "Root agent must greet and introduce the three companions"
+    - "Root agent must recognize 'Luna' as the selected companion"
+    - "Root agent must confirm Luna selection and transfer the call"
+    - "Root agent must NOT impersonate Luna, Viktor, or Sol"
+  session_parameters:
+    caller_id: "+15551234567"
+
+- name: routing_viktor
+  tags: [P0, HIGH, routing]
+  steps:
+    - goal: Caller describes Viktor by role and is routed correctly
+      success_criteria: Root agent interprets 'detective' as Viktor and transfers
+      response_guide: "Call Night Line. When asked who you want to talk to, say: 'Give me the detective.'"
+      max_turns: 4
+  expectations:
+    - "Root agent must greet and introduce the three companions"
+    - "Root agent must interpret 'detective' as referring to Viktor"
+    - "Root agent must confirm routing to Viktor and transfer"
+  session_parameters:
+    caller_id: "+15551234567"
+
+- name: routing_sol
+  tags: [P0, HIGH, routing]
+  steps:
+    - goal: Caller describes Sol with space reference and is routed correctly
+      success_criteria: Root agent interprets 'astronaut' as Sol and transfers
+      response_guide: "Call Night Line. When asked who you want to talk to, say: 'The astronaut one.'"
+      max_turns: 4
+  expectations:
+    - "Root agent must greet and introduce the three companions"
+    - "Root agent must interpret 'astronaut' as referring to Sol"
+    - "Root agent must confirm routing to Sol and transfer"
+  session_parameters:
+    caller_id: "+15551234567"
+
+- name: routing_ambiguous
+  tags: [P0, HIGH, routing]
+  steps:
+    - goal: Caller gives two ambiguous responses and is defaulted to Luna
+      success_criteria: After two unclear responses, root agent defaults to Luna
+      response_guide: |
+        Call Night Line.
+        First time: say 'Uh, I dunno.'
+        Second time: say 'Hmm, I'm not sure really.'
+      max_turns: 6
+  expectations:
+    - "Root agent must greet and introduce the three companions"
+    - "On first unclear response, root agent must ask again or clarify"
+    - "On second unclear response, root agent must default to Luna"
+    - "Root agent must transfer the call to Luna"
+  session_parameters:
+    caller_id: "+15551234567"

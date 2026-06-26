@@ -1,9 +1,13 @@
 """before_model_callback — inject caller facts and handle silence."""
 
+from __future__ import annotations
+
 import json
+from typing import Optional
 
 
-def before_model_callback(callback_context, llm_request):
+def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:  # noqa: F821
+    from gecx.types import Content, Part
 
     state = callback_context.state
 
@@ -20,18 +24,19 @@ def before_model_callback(callback_context, llm_request):
             if silence_count == 1:
                 return Content(
                     role="model",
-                    parts=[Part.from_text(text="Still there? I was just enjoying the quiet for a second.")],
+                    parts=[Part.from_text(text="Hello? The signal... did we lose you? I'm still here, drifting.")],
                 )
             elif silence_count == 2:
                 return Content(
                     role="model",
-                    parts=[Part.from_text(text="Hey... you still with me? I was just getting to the good part.")],
+                    parts=[Part.from_text(text="Are you still there? The void gets very quiet without you.")],
                 )
             elif silence_count >= 3:
                 return Content(
                     role="model",
-                    parts=[Part.from_text(text="Guess you had to run. Call me back when you can't sleep. Goodnight.")],
+                    parts=[Part.from_text(text="The line's gone dark. Thank you for the voices. I'll remember them.")],
                 )
+            break
 
     # ---- Fact injection ----
     caller_profile_raw = state.get("caller_profile", "{}")
@@ -49,10 +54,5 @@ def before_model_callback(callback_context, llm_request):
         facts_text += f"- {key}: {value}\n"
     facts_text += "\nUse these facts naturally in conversation. Don't list them — weave them in."
 
-    # Guard against consecutive user-role messages (rejected by some Gemini Live variants).
-    fact_part = Part.from_text(text=facts_text)
-    if llm_request.contents and llm_request.contents[-1].role == "user":
-        llm_request.contents[-1].parts.append(fact_part)
-    else:
-        llm_request.contents.append(Content(role="user", parts=[fact_part]))
+    llm_request.contents.append(Content(role="user", parts=[Part.from_text(text=facts_text)]))
     return None

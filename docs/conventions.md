@@ -215,7 +215,44 @@ response = LlmResponse.from_parts(["Goodbye"])
 { "childAgents": ["luna_agent", "viktor_agent"] }
 ```
 
-## 11. First-Push Validation Checklist
+## 11. Multi-Persona Symmetry Rules
+
+When a callback bug is fixed in one persona agent, it must be fixed in all three. When a new persona is added, it must implement the full callback contract.
+
+**Required init callback outputs** (all three persona agents):
+
+```python
+callback_context.state["caller_profile"] = json.dumps(data)
+callback_context.state["is_returning"] = "true" if data["call_count"] > 1 else "false"
+callback_context.state["persona_id"] = "<persona>"
+callback_context.state["_initialized"] = "true"
+```
+
+Missing `is_returning` means any downstream instruction or logic that checks it gets an empty string for that persona.
+
+**Returning-caller threshold in instructions** — always `call_count > 1`, never `> 0`. The init callback increments `call_count` before the instruction reads it; a first-time caller always has `call_count = 1`.
+
+**Consecutive user-role guard in inject_facts** — Gemini Live rejects two consecutive `role="user"` messages. Always use the guarded append:
+
+```python
+fact_part = Part.from_text(text=facts_text)
+if llm_request.contents and llm_request.contents[-1].role == "user":
+    llm_request.contents[-1].parts.append(fact_part)
+else:
+    llm_request.contents.append(Content(role="user", parts=[fact_part]))
+```
+
+**Eval copies vs production** (`evals/callback_tests/agents/` vs `cxas_app/NightLine/agents/`):
+
+- Eval copies exist for the CXAS sim runner. Tests should import from `cxas_app/` via importlib, not from the eval copy.
+- When production code changes, update the eval copy in the same PR or they silently diverge.
+- CI currently imports from eval copies; any divergence means CI passes but production is broken.
+
+**app.json session params** — every param with an empty default must be set by a callback. `caller_id` is the only exception (platform-injected by telephony). The CI `check_session_params.py` script enforces this.
+
+**Sim eval caller IDs** — use distinct `caller_id` per persona test case. Shared IDs accumulate Firestore state across sequential runs, corrupting `call_count` and `is_returning` for subsequent tests.
+
+## 12. First-Push Validation Checklist
 
 After `cxas push` succeeds, verify the deployment is actually functional:
 
