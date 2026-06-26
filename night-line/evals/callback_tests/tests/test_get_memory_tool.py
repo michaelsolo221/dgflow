@@ -8,6 +8,7 @@ that would break character if surfaced by the persona.
 import importlib.util
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from conftest import MockCallbackContext
 
 _TOOL_FILE = (
     Path(__file__).resolve().parent.parent.parent.parent
@@ -23,10 +24,6 @@ _tool_mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_tool_mod)
 get_memory = _tool_mod.get_memory
 
-
-class MockCallbackContext:
-    def __init__(self, state=None):
-        self.state = dict(state or {})
 
 
 _BANNED_WORDS = {"error", "failed", "system", "try again"}
