@@ -34,3 +34,4 @@ select = ["E", "F", "I", "W", "UP"]
 testpaths = ["tests", "night-line/evals/callback_tests/test_suites", "night-line/evals/callback_tests/tests"]
 python_files = ["test_*.py", "*_test.py", "test.py"]
 pythonpath = ["night-line/evals/callback_tests"]
+addopts = "--import-mode=importlib"
