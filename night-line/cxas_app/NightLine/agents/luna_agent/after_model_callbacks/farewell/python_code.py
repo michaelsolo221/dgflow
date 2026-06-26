@@ -1,5 +1,6 @@
 """after_model_callback — injects farewell before end_session."""
 
+
 def after_model_callback(callback_context, llm_response):
     state = callback_context.state
 
