@@ -8,6 +8,7 @@ that would break character if surfaced by the persona.
 import importlib.util
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 from conftest import MockCallbackContext
 
 _TOOL_FILE = (

@@ -4,7 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from conftest import MockCallbackContext, MockState
+
+from conftest import MockCallbackContext
 
 # Import the callback from the eval agents copy with a unique module name
 _agents_dir = (

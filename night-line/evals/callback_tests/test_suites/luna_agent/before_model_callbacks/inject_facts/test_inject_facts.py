@@ -5,7 +5,8 @@ import json
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
-from conftest import MockCallbackContext, MockState
+
+from conftest import MockCallbackContext
 
 
 # Inject mock gecx.types module BEFORE importing the callback

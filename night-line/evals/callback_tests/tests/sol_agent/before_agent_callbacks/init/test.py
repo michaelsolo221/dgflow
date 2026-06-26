@@ -4,7 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from conftest import MockCallbackContext, MockState
+
+from conftest import MockCallbackContext
 
 _agents_dir = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
