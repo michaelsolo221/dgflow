@@ -26,10 +26,12 @@ exclude = [".agents/", "node_modules/", ".venv/", "dist/", "build/", "cx/"]  # p
 select = ["E", "F", "I", "W", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-# ponytail: cxas lint (C009) requires Optional[X] syntax — suppress ruff's UP045 counter-rule
-"night-line/cxas_app/**/*.py" = ["UP045"]
+# UP045: cxas lint requires Optional[X] syntax
+# F821: Content/Part/LlmResponse/CallbackContext are platform-injected globals, not real imports
+"night-line/cxas_app/**/*.py" = ["UP045", "F821"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "night-line/evals/callback_tests/test_suites"]
+testpaths = ["tests", "night-line/evals/callback_tests/test_suites", "night-line/evals/callback_tests/tests"]
 python_files = ["test_*.py", "*_test.py", "test.py"]
 pythonpath = ["night-line/evals/callback_tests"]
+addopts = "--import-mode=importlib"
