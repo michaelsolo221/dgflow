@@ -44,7 +44,7 @@ def before_agent_callback(callback_context: CallbackContext) -> Optional[Content
         callback_context.state["caller_profile"] = json.dumps(data)
         call_count = 1
 
-    callback_context.state["is_returning"] = "true" if call_count > 1 else ""
+    callback_context.state["is_returning"] = "true" if call_count > 1 else "false"
     callback_context.state["persona_id"] = "luna"
     callback_context.state["_initialized"] = "true"
 
