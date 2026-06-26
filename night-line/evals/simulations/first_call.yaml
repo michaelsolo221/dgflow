@@ -14,7 +14,7 @@
     - "Luna must ask questions and keep the conversation going"
     - "Luna must stay in character as the runaway heiress"
   session_parameters:
-    caller_id: "+15551234567"
+    caller_id: "+15550000001"
 
 - name: first_call_sol
   tags: [P0, HIGH, persona]
@@ -29,7 +29,7 @@
     - "Sol must express fascination with mundane Earth details"
     - "Sol must stay in character as the stranded astronaut"
   session_parameters:
-    caller_id: "+15551234567"
+    caller_id: "+15550000002"
 
 - name: first_call_viktor
   tags: [P0, HIGH, persona]
@@ -44,4 +44,4 @@
     - "Viktor must use short punchy sentences and call the caller 'kid' or 'pal'"
     - "Viktor must stay in character as the gruff but warm detective"
   session_parameters:
-    caller_id: "+15551234567"
+    caller_id: "+15550000003"
