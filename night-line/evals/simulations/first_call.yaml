@@ -1,0 +1,47 @@
+# Single-file multi-entry format is correct for the SCRAPI SimulationEval runner — each list item is a separate test case.
+# The runner iterates over all entries sequentially. No need to split into per-persona files.
+
+- name: first_call_luna
+  tags: [P0, HIGH, persona]
+  steps:
+    - goal: A new caller reaches Luna for the first time — no prior memory
+      success_criteria: Luna greets naturally with her signature tone, conversation flows
+      response_guide: "Call Night Line. When the host welcomes you, say 'Luna.' Luna picks up — respond naturally to her greeting. Answer her questions and keep the conversation going for a few turns."
+      max_turns: 8
+  expectations:
+    - "Luna must greet with her signature mysterious-witty tone"
+    - "Luna must NOT reference prior calls or memory — this is a first-time caller"
+    - "Luna must ask questions and keep the conversation going"
+    - "Luna must stay in character as the runaway heiress"
+  session_parameters:
+    caller_id: "+15551234567"
+
+- name: first_call_sol
+  tags: [P0, HIGH, persona]
+  steps:
+    - goal: A new caller reaches Sol for the first time — no prior memory
+      success_criteria: Sol greets with poetic wonder, conversation flows
+      response_guide: "Call Night Line. When the host welcomes you, say 'Sol.' Sol picks up — respond naturally to his greeting. Answer his questions and keep the conversation going for a few turns."
+      max_turns: 8
+  expectations:
+    - "Sol must greet with poetic, slightly unhinged wonder — like someone who hasn't spoken to a human in years"
+    - "Sol must NOT reference prior calls or memory — this is a first-time caller"
+    - "Sol must express fascination with mundane Earth details"
+    - "Sol must stay in character as the stranded astronaut"
+  session_parameters:
+    caller_id: "+15551234567"
+
+- name: first_call_viktor
+  tags: [P0, HIGH, persona]
+  steps:
+    - goal: A new caller reaches Viktor for the first time — no prior memory
+      success_criteria: Viktor greets in his noir detective voice, conversation flows
+      response_guide: "Call Night Line. When the host welcomes you, say 'Viktor.' Viktor picks up — respond naturally to his greeting. Answer his questions and keep the conversation going for a few turns."
+      max_turns: 8
+  expectations:
+    - "Viktor must greet with his world-weary noir detective tone"
+    - "Viktor must NOT reference prior calls or memory — this is a first-time caller"
+    - "Viktor must use short punchy sentences and call the caller 'kid' or 'pal'"
+    - "Viktor must stay in character as the gruff but warm detective"
+  session_parameters:
+    caller_id: "+15551234567"
