@@ -16,7 +16,7 @@ APP_JSON = Path("night-line/cxas_app/NightLine/app.json")
 CALLBACKS_ROOT = Path("night-line/cxas_app/NightLine/agents")
 
 # Params auto-injected by the CXAS telephony platform — not set by our callbacks.
-PLATFORM_INJECTED = {"caller_id"}
+PLATFORM_INJECTED = {"caller_id", "current_date"}
 
 app = json.loads(APP_JSON.read_text())
 declarations = app.get("variableDeclarations", [])
