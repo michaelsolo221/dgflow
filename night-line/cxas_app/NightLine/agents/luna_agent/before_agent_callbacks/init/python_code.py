@@ -1,9 +1,12 @@
 """before_agent_callback — initialize caller profile on first turn."""
 
+from __future__ import annotations
+
 import json
+from typing import Optional
 
 
-def before_agent_callback(callback_context):
+def before_agent_callback(callback_context: CallbackContext) -> Optional[Content]:  # noqa: F821
     # Turn guard — skip init on subsequent turns
     if callback_context.state.get("_initialized") == "true":
         return None

@@ -1,7 +1,11 @@
 """after_model_callback — injects farewell before end_session."""
 
+from __future__ import annotations
 
-def after_model_callback(callback_context, llm_response):
+from typing import Optional
+
+
+def after_model_callback(callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:  # noqa: F821
     state = callback_context.state
 
     # Session-level guard — only farewell once
