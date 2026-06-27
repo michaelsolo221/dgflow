@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from conftest import MockCallbackContext
+
 # Import the callback from the eval agents copy with a unique module name
 _agents_dir = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -20,20 +22,6 @@ _spec = importlib.util.spec_from_file_location(
 _before_agent_module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_before_agent_module)
 before_agent_callback = _before_agent_module.before_agent_callback
-
-
-# -- Helpers -----------------------------------------------------------
-
-
-class MockState(dict):
-    """State dict that supports .get()"""
-
-    pass
-
-
-class MockCallbackContext:
-    def __init__(self, state=None):
-        self.state = MockState(state or {})
 
 
 # -- Tests -------------------------------------------------------------

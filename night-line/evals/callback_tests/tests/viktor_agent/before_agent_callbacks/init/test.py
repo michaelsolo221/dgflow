@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from conftest import MockCallbackContext
+
 _agents_dir = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
     / "agents"
@@ -16,21 +18,6 @@ _spec = importlib.util.spec_from_file_location("viktor_before_agent_init", str(_
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 before_agent_callback = _mod.before_agent_callback
-
-
-# -- Helpers -----------------------------------------------------------
-
-
-class MockState(dict):
-    pass
-
-
-class MockCallbackContext:
-    def __init__(self, state=None):
-        self.state = MockState(state or {})
-
-
-# -- Tests -------------------------------------------------------------
 
 
 def test_turn_guard_fires_on_second_invocation():

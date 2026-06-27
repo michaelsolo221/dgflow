@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from conftest import MockCallbackContext
+
 
 # Inject mock gecx.types module BEFORE importing the callback
 class _MockPart:
@@ -51,20 +53,6 @@ _spec = importlib.util.spec_from_file_location(
 _before_model_module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_before_model_module)
 before_model_callback = _before_model_module.before_model_callback
-
-
-# -- Helpers -----------------------------------------------------------
-
-
-class MockState(dict):
-    """State dict that supports .get()"""
-
-    pass
-
-
-class MockCallbackContext:
-    def __init__(self, state=None):
-        self.state = MockState(state or {})
 
 
 class MockLlmRequest:
