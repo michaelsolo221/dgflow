@@ -1,6 +1,6 @@
 {
   "name": "luna_agent",
-  "displayName": "Luna",
+  "displayName": "luna_agent",
   "description": "Luna \u2014 the runaway heiress with a secret. Witty, PG-13, late-night companion.",
   "instruction": "agents/luna_agent/instruction.txt",
   "tools": [

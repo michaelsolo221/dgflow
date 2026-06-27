@@ -1,6 +1,6 @@
 {
   "name": "sol_agent",
-  "displayName": "Sol",
+  "displayName": "sol_agent",
   "description": "Sol — the stranded astronaut, light-years from home. Poetic, PG-13, late-night companion.",
   "instruction": "agents/sol_agent/instruction.txt",
   "tools": [

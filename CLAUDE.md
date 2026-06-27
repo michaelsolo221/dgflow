@@ -18,6 +18,37 @@ Before writing or reviewing CXAS agent code, read `docs/conventions.md`. It is t
 
 For platform overview, known proto constraints, callback order, and canonical links to GCP console / cxas-scrapi docs, see `docs/cxas-platform.md`.
 
+## Local verification
+
+```bash
+uv sync --extra dev && uv run ruff check . && uv run ruff format --check . && uv run pytest -v
+uv run cxas lint --app-dir night-line/cxas_app/NightLine/
+python3 night-line/scripts/check_session_params.py
+```
+
+This is what CI runs in `lint` + `test` jobs. No cloud creds needed.
+
+## Running evals (cloud)
+
+ADC is configured (`gcloud auth application-default login`). cxas-scrapi picks it up automatically — no env vars or service account files.
+
+```bash
+APP="projects/superb-tendril-409615/locations/us/apps/8093c2b8-e21e-4435-a5e4-dd454657d183"
+
+# Deploy latest code first (evals run against the deployed app, not local files)
+uv run cxas push --app-dir night-line/cxas_app/NightLine --to "$APP" \
+  --project-id superb-tendril-409615 --location us
+
+# Push evals, then run
+uv run cxas push-eval --app-name "$APP" --file night-line/evals/simulations/first_call.yaml
+uv run cxas run --app-name "$APP" --tags P0 --wait
+
+# Tool tests (direct, no push)
+uv run cxas test-tools --app-name "$APP" --test-file night-line/evals/tool_tests/get_memory.yaml
+```
+
+Always `cxas push` before `cxas run` — evals test the deployed app, not local files.
+
 ## Repository architecture
 
 | Repo | Purpose |

@@ -9,7 +9,7 @@ Single source of truth for agent authoring. All issues, PRs, and coding agents s
 | Agent directories | `snake_case` | `root_agent/`, `luna_agent/` |
 | Agent JSON files | Match directory name | `root_agent.json` |
 | Agent `name` field | Match directory name | `"name": "root_agent"` |
-| Agent `displayName` | Human-readable camelCase | `"displayName": "Root Agent"` |
+| Agent `displayName` | Must match `name` field exactly | `"displayName": "root_agent"` |
 | `childAgents` array | Directory name strings (underscores) | `["luna_agent", "viktor_agent"]` |
 | Tool directories | `snake_case` | `get_memory/` |
 | Tool JSON files | `<tool_name>.json` | `get_memory.json` |
@@ -35,8 +35,7 @@ cxas pull projects/<id>/locations/<loc>/apps/<app_id> \
 GOOGLE_CLOUD_PROJECT=<id> cxas push ...
 ```
 
-**Not** `uv run cxas` — `setup.sh` creates a venv with pip, not uv.\
-**Not** bare `cxas` without activating the venv first.
+**Either** `source .venv/bin/activate && cxas` (setup.sh approach) **or** `uv run cxas` (upstream preference) — both work. Pick one and stay consistent.
 
 ## 3. Required `app.json` Fields
 
@@ -81,13 +80,14 @@ Every sim must have `tags: [P0, HIGH, <category>]`. Sims without tags are silent
 - [ ] `caller_id` required in session parameters — `before_agent_callback` reads it from state; missing = KeyError crash.
 - [ ] `gcsBucket` must be a real bucket — every audio eval returns HTTP 400 without it.
 - [ ] `deployed_app_id` is the short name — not the full resource path; SDK handles pathing.
-- [ ] `displayName` is camelCase — not `display_name`.
+- [ ] `displayName` must match `name` exactly — mismatches cause `400 Reference not found` on push.
 - [ ] `childAgents` values are directory names — underscores, not spaces or display names. Push returns `400 Reference not found` if mismatched.
 - [ ] Silence handling required for voice — detect `<context>no user activity` in `before_model_callback`; use `part.text_or_transcript()` not `part.text` (audio parts return `None` for `.text`).
 - [ ] Multi-model-call guard on `after_model_callback` — fires on EACH model call; check `callback_context.events` to prevent double injection.
 - [ ] `LlmResponse.from_parts()` not raw constructor — `LlmResponse(content=Content(parts=[...]))` fails at runtime.
 - [ ] `end_session` cannot be called from callbacks — return `Content` response; platform handles teardown.
 - [ ] `speakingRate` in platform config, not instructions — persona-level pacing is unreliable on the live model.
+- [ ] `cxas push` before `cxas run` — evals test the deployed app, not local files. Stale deploy = tests pass against old code.
 
 ## 6. Callback Signature Reference
 
@@ -257,7 +257,7 @@ else:
 After `cxas push` succeeds, verify the deployment is actually functional:
 
 - [ ] `cxas lint --app-dir night-line/cxas_app/` passes with zero errors
-- [ ] `cxas llm-lint` on root agent instruction.txt returns clean
+- [ ] `cxas llm-lint --agent-dir night-line/cxas_app/NightLine/agents/root_agent/` (v1.5.0+; not available as CLI subcommand in v1.4.1)
 - [ ] `gecx-config.json` `deployed_app_id` is set (short name, not full path)
 - [ ] Place a test call via CES Console — verify greeting plays
 - [ ] Check session logs: `caller_id` is populated (not empty string)
